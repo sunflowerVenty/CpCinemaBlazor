@@ -1,24 +1,37 @@
-﻿@page "/counter"
+﻿@page "/adminpage"
 
 @using CpCinemaBlazor.ApiRequest
 @using CpCinemaBlazor.ApiRequest.Model
+@using Microsoft.AspNetCore.Authorization
 @using static CpCinemaBlazor.ApiRequest.Model.User
 @rendermode InteractiveServer
 
-<PageTitle>Counter</PageTitle>
-
+<PageTitle>AdminPanel</PageTitle>
+<label class="form-label" for="rating">Имя</label>
 <input @bind="addUser.Name" />
+<p></p>
+<label class="form-label" for="rating">О себе</label>
 <input @bind="addUser.AboutMe" />
+<p></p>
+<label class="form-label" for="rating">Почта</label>
 <input @bind="addUser.Email" />
+<p></p>
+<label class="form-label" for="rating">Пароль</label>
 <input @bind="addUser.Password" />
+<p></p>
+<label class="form-label" for="rating">Роль: админ</label>
 <input type="checkbox" @bind="addUser.Admin" />
+<p></p>
 <button @onclick="CreateUser" class="button-17" role="button">Добавить</button>
 
+@if (isAdmin == true)
+{
 <p class="text-center fw-bold mb-5 mx-1 mx-md-4 mt-4">
     <table class="table table-bordered">
         <thead class="alert-dark">
             <tr>
                 <td>id_User</td>
+                <td>isAdmin</td>
                 <td>Name</td>
                 <td>AboutMe</td>
                 <td>Email</td>
@@ -47,6 +60,17 @@
                     <tr>
                         <td>
                             @user.id_User
+                        </td>
+                        <td>
+                            @if (user.Admin == false)
+                            {
+                                <p>Пользователь</p>
+                            }
+                            else if (user.Admin == true)
+                            {
+                                <p>Админ</p>
+                            }
+                            
                         </td>
                         <td>
                             @if (user.Edit)
@@ -98,6 +122,14 @@
                             {
                                 <button @onclick="() => EditUser(user)">Изменить</button>
                                 <button @onclick="() => DeleteUser(user)">Удалить</button>
+                                @if (user.Admin == false)
+                                {
+                                    <button style="background-color: crimson" @onclick="() => MakeAdmin(user)">Сделать админом</button>
+                                }
+                                else if (user.Admin == true)
+                                {
+                                    <button style="background-color: cadetblue" @onclick="() => MakeUser(user)">Сделать пользователем</button>
+                                }
                             }
                         </td>
                     </tr>
@@ -106,32 +138,33 @@
         </tbody>
     </table>
 </p>
-
+}
 @code {
+
+
     private List<UserDataShort> users;
 
     AddUser addUser = new AddUser();
-
     UserDataShort UserData = new UserDataShort();
-
     CurUser curUser;
-    bool isAdmin;
-    bool isAuth;
+
+    private bool isAuthenticated;
+    private bool isAdmin;
 
     [Inject] private ApiRequestService ApiRequest { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        // curUser = SingletoneUser.GetUser();
-        // isAuth = curUser != null;
-        // isAdmin = curUser?.isAdmin == true;
+        curUser = SingletoneUser.GetUser();
 
-        // if (isAuth && isAdmin)
-        // {
+        isAuthenticated = curUser != null;
 
-            await GetUsers();
+        isAdmin = curUser?.isAdmin == true;
 
-        // }
+        if (isAuthenticated && isAdmin)
+        {
+             await GetUsers();
+        }
     }
 
     private async Task GetUsers()
@@ -153,10 +186,8 @@
         await GetUsers();
     }
 
-    void CancelUser(UserDataShort user) => user.Edit = false;
-    void SaveUser(UserDataShort user)
+    async void MakeAdmin(UserDataShort user)
     {
-        user.Edit = false;
         if (!string.IsNullOrWhiteSpace(user.Name) &&
        !string.IsNullOrWhiteSpace(user.AboutMe) &&
        !string.IsNullOrWhiteSpace(user.Email) &&
@@ -164,6 +195,7 @@
         {
             UserProd userProd = new UserProd();
             userProd.id_User = user.id_User;
+            userProd.isAdmin = true;
             userProd.Name = user.Name;
             userProd.AboutMe = user.AboutMe;
             userProd.Email = user.Email;
@@ -171,6 +203,49 @@
 
             ApiRequest.EditUserAsync(userProd);
         }
+        GetUsers();
+    }
+
+    async void MakeUser(UserDataShort user)
+    {
+        if (!string.IsNullOrWhiteSpace(user.Name) &&
+       !string.IsNullOrWhiteSpace(user.AboutMe) &&
+       !string.IsNullOrWhiteSpace(user.Email) &&
+       !string.IsNullOrWhiteSpace(user.Password))
+        {
+            UserProd userProd = new UserProd();
+            userProd.id_User = user.id_User;
+            userProd.isAdmin = false;
+            userProd.Name = user.Name;
+            userProd.AboutMe = user.AboutMe;
+            userProd.Email = user.Email;
+            userProd.Password = user.Password;
+
+            ApiRequest.EditUserAsync(userProd);
+        }
+        GetUsers();
+    }
+
+    void CancelUser(UserDataShort user) => user.Edit = false;
+
+    void SaveUser(UserDataShort user)
+    {
+        if (!string.IsNullOrWhiteSpace(user.Name) &&
+       !string.IsNullOrWhiteSpace(user.AboutMe) &&
+       !string.IsNullOrWhiteSpace(user.Email) &&
+       !string.IsNullOrWhiteSpace(user.Password))
+        {
+            UserProd userProd = new UserProd();
+            userProd.id_User = user.id_User;
+            userProd.isAdmin = true;
+            userProd.Name = user.Name;
+            userProd.AboutMe = user.AboutMe;
+            userProd.Email = user.Email;
+            userProd.Password = user.Password;
+
+            ApiRequest.EditUserAsync(userProd);
+        }
+        user.Edit = false;
         GetUsers();
     }
     

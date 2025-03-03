@@ -1,4 +1,4 @@
-﻿@page "/Account/Login"
+﻿@page "/"
 
 @using System.ComponentModel.DataAnnotations
 @using CpCinemaBlazor.ApiRequest.Model
@@ -13,6 +13,7 @@
 
 @inject ILogger<Login> Logger
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @rendermode InteractiveServer
 
 <PageTitle>Log in</PageTitle>
@@ -41,7 +42,7 @@
                 </div>
                 <div>
                     <p>
-                        <a href="Account/ForgotPassword">Forgot your password?</a>
+                        <a href="/Account/Registration">Forgot your password?</a>
                     </p>
                 </div>
             </EditForm>
@@ -63,6 +64,8 @@
 
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
+
+
 
     private sealed class InputModel
     {
@@ -89,15 +92,22 @@
 
             if (!string.IsNullOrEmpty(token))
             {
-                Navigation.NavigateTo("/counter");
                 var principal = JwtService.DecodeJwtToken(token);
 
                 int Id = Convert.ToInt32(principal.FindFirst("id_User")?.Value);
                 string NameT = principal.FindFirst("Name")?.Value;
                 string About = principal.FindFirst("AboutMe")?.Value;
                 bool Admin = Convert.ToBoolean(principal.FindFirst("isAdmin")?.Value);
-                // SingletoneUser.InitUser(new CurUser { id_User = Id, AboutMe = About, Name = NameT, isAdmin = Admin, Token = token });
+                SingletoneUser.InitUser(new CurUser { id_User = Id, AboutMe = About, Name = NameT, isAdmin = Admin, Token = token });
                 
+                if (Admin == true)
+                {
+                    Navigation.NavigateTo("/adminpage");
+                }
+                else if (Admin == false)
+                {
+                    Navigation.NavigateTo("/userpage");
+                }
             }
             else
             {

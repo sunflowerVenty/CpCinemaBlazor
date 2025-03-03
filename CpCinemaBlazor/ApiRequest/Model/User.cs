@@ -5,6 +5,7 @@
         public class UserDataShort
         {
             public int id_User { get; set; }
+            public bool Admin { get; set; }
             public string Name { get; set; }
             public string AboutMe { get; set; }
             public string Email {  get; set; }
@@ -15,6 +16,7 @@
         public class UserProd
         {
             public int id_User { get; set; }
+            public bool isAdmin { get; set; }
             public string Name { get; set; }
             public string AboutMe { get; set; }
             public string Email { get; set; }

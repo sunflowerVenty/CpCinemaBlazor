@@ -1,0 +1,72 @@
+﻿@page "/userpage"
+
+@using CpCinemaBlazor.ApiRequest
+@using CpCinemaBlazor.ApiRequest.Model
+@using System.ComponentModel.DataAnnotations
+@using static CpCinemaBlazor.ApiRequest.Model.User
+@rendermode InteractiveServer
+@inject NavigationManager Navigation
+
+<h3>Профиль пользователя</h3>
+
+@if (user == null)
+{
+    <p>Пользователь не авторизован.</p>
+}
+else
+{
+    <div class="user-profile-container">
+        <div class="user-info">
+            <h4>@user.Name</h4>
+            <p><strong>Id:</strong> @user.id_User</p>
+            <p><strong>Имя:</strong> @user.Name</p>
+            <p><strong>О себе:</strong> @user.AboutMe</p>
+        </div>
+
+        <div class="user-actions">
+            <button class="btn btn-primary" @onclick="Logout">Выйти</button>
+        </div>
+    </div>
+}
+
+@code {
+    private CurUser user;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (SingletoneUser.us != null)
+            {
+                user = new CurUser
+                    {
+                        Name = SingletoneUser.us.Name ?? "Имя не указано",
+                        AboutMe = SingletoneUser.us.AboutMe ?? "Описание не указано"
+                    };
+            }
+            else
+            {
+                user = new CurUser
+                    {
+                        Name = "Неизвестный пользователь",
+                        AboutMe = "Описание недоступно"
+                    };
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка при инициализации: {ex.Message}");
+            user = new CurUser
+                {
+                    Name = "Неизвестный пользователь",
+                    AboutMe = "Описание недоступно"
+                };
+        }
+    }
+
+    private async Task Logout()
+    {
+        SingletoneUser.exitUser();
+        Navigation.NavigateTo("/");
+    }
+}

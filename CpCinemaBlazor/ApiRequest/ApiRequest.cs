@@ -3,6 +3,7 @@ using System.Text.Json;
 using CpCinemaBlazor.ApiRequest.Model;
 using Microsoft.Extensions.Logging;
 using static CpCinemaBlazor.ApiRequest.Model.User;
+using static CpCinemaBlazor.ApiRequest.Model.Film;
 using Newtonsoft.Json;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 using CpCinemaBlazor.ApiRequest.Services;
@@ -57,10 +58,7 @@ namespace CpCinemaBlazor.ApiRequest
         {
             try
             {
-                var json = JsonConvert.SerializeObject(user);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                HttpResponseMessage response = await _httpClient.PutAsync("http://localhost:5005/api/UsersLogins/EditUser", content);
+                HttpResponseMessage response = await _httpClient.PutAsJsonAsync("http://localhost:5005/api/UsersLogins/EditUser", user);
             }
             catch (Exception ex)
             {
@@ -130,6 +128,83 @@ namespace CpCinemaBlazor.ApiRequest
         {
             public bool Status { get; set; }
             public string Token { get; set; }
+        }
+
+        
+        public async Task<FilmData> GetAllFilmsAsync()
+        {
+            var url = "api/FilmsGenres/getAllFilms";
+
+            try
+            {
+                var response = await _httpClient.GetAsync(url).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
+
+                var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+                if (string.IsNullOrEmpty(responseContent))
+                {
+                    _logger.LogWarning("Ответ от сервера пуст.");
+                    return new FilmData();
+                }
+
+                var filmData = JsonSerializer.Deserialize<FilmData>(responseContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+
+                return filmData ?? new FilmData();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при запросе");
+                return new FilmData();
+            }
+        }
+
+        public async Task<Film> CreateFilmAsync(AddFilm film)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync($"http://localhost:5005/api/FilmsGenres/createFilm", film);
+                response.EnsureSuccessStatusCode();
+
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                var MovieAddData = JsonSerializer.Deserialize<Film>(responseContent);
+
+                return MovieAddData ?? new Film();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка при запросе: {ex.Message}");
+                return new Film();
+            }
+        }
+
+        public async void EditFilmAsync(Film film)
+        {
+            try
+            {
+                HttpResponseMessage response = await _httpClient.PutAsJsonAsync("http://localhost:5005/api/FilmsGenres/editFilm", film);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при запросе");
+            }
+        }
+
+        public async void DeleteFilmAsync(int Id)
+        {
+            try
+            {
+                HttpResponseMessage response = await _httpClient.DeleteAsync($"http://localhost:5005/api/FilmsGenres/deleteFilm/{Id}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при запросе");
+            }
         }
     }
 }

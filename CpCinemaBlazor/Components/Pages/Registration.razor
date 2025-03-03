@@ -1,4 +1,4 @@
-﻿@page "/Account/Registration"
+﻿@page "/Registration"
 
 @using System.ComponentModel.DataAnnotations
 @using CpCinemaBlazor.ApiRequest.Model
@@ -16,9 +16,9 @@
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 
-<PageTitle>Log in</PageTitle>
+<PageTitle>Регистрация</PageTitle>
 
-<h1>Log in</h1>
+<h1>Регистрация</h1>
 <div class="row">
     <div class="col-md-4">
         <section>
@@ -61,6 +61,14 @@
 @code {
     AddUser user = new AddUser();
     [Inject] private ApiRequestService ApiRequest { get; set; }
+    private string errorMessage;
+
+    protected override void OnInitialized()
+    {
+        NotificationService.OnNotificationAdded += HandleNotificationAdded;
+    }
+
+    private List<NotificationService.NotificationModel> Notifications = new List<NotificationService.NotificationModel>();
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -95,12 +103,11 @@
             user.AboutMe = Input.AboutMe;
             user.Email = Input.Email;
             user.Password = Input.Password;
-        
+
             var token = await ApiRequest.CreateUserLoginAsync(user);
 
             if (!string.IsNullOrEmpty(token))
             {
-                Navigation.NavigateTo("/counter");
                 var principal = JwtService.DecodeJwtToken(token);
 
                 int Id = Convert.ToInt32(principal.FindFirst("id_User")?.Value);
@@ -109,6 +116,14 @@
                 bool Admin = Convert.ToBoolean(principal.FindFirst("isAdmin")?.Value);
                 // SingletoneUser.InitUser(new CurUser { id_User = Id, AboutMe = About, Name = NameT, isAdmin = Admin, Token = token });
 
+                if (Admin == true)
+                {
+                    Navigation.NavigateTo("/adminpage");
+                }
+                else if (Admin == false)
+                {
+                    Navigation.NavigateTo("/userpage");
+                }
             }
             else
             {
@@ -117,7 +132,8 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex);
+            errorMessage = "Произошла ошибка при регистрации.";
+            NotificationService.ShowError(errorMessage);
         }
 
     }

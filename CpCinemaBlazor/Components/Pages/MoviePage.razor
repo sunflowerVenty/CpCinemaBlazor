@@ -1,0 +1,215 @@
+﻿@page "/filmpage"
+@using CpCinemaBlazor.ApiRequest
+@using CpCinemaBlazor.ApiRequest.Model
+@using static CpCinemaBlazor.ApiRequest.Model.Film
+@rendermode InteractiveServer
+<script src="_framework/blazor.server.js"></script>
+@if (isAdmin == true & isAuthenticated == true)
+{
+<h1>Добавление нового фильма</h1>
+<label class="form-label" for="name">Название</label>
+<input @bind="newfilm.Name" />
+<label class="form-label" for="info">Описание</label>
+<input @bind="newfilm.Info" />
+<label class="form-label" for="genre">Жанр</label>
+<input @bind="newfilm.Namegenre" />
+<label class="form-label" for="publishing-date">Дата выхода</label>
+<input type="date" @bind="newfilm.DateCreate" />
+<label class="form-label" for="rating">Рейтинг</label>
+<input @bind="newfilm.Rating" />
+<button @onclick="CreateFilm" class="button-17" role="button">Добавить</button>
+}
+else if(isAuthenticated == true)
+{
+<h1>Список фильмов</h1>
+<table class="table table-bordered">
+    <thead class="alert-dark">
+        <tr>
+            <td>Id</td>
+            <td>Name</td>
+            <td>Genre</td>
+            <td>Info</td>
+            <td>Date</td>
+            <td>Rating</td>
+            @if (isAdmin == true)
+            {
+                <th>Edit</th>
+            }
+        </tr>
+    </thead>
+    <tbody>
+        @if (films == null)
+        {
+            <tr>
+                <td colspan="7" class="text-center">Загрузка...</td>
+            </tr>
+        }
+        else if (!films.Any())
+        {
+            <tr>
+                <td colspan="7" class="text-center">Фильмы не найдены</td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var film in films)
+            {
+                <tr>
+                    <td>
+                        @if (film.Edit)
+                        {
+                            <input @bind="@film.id_Film" placeholder="Id" pattern="[а-яА-Я]+" />
+                        }
+                        else
+                        {
+                            @film.id_Film
+                        }
+                    </td>
+                    <td>
+                        @if (film.Edit)
+                        {
+                            <input @bind="@film.Name" placeholder="Название" pattern="[а-яА-Я]+" />
+                        }
+                        else
+                        {
+                            @film.Name
+                        }
+                    </td>
+                    <td>
+                        @if (film.Edit)
+                        {
+                            <input @bind="@film.Namegenre" placeholder="комедия" pattern="[а-яА-Я]+" />
+                        }
+                        else
+                        {
+                            @film.Namegenre
+                        }
+                    </td>
+                    <td>
+                        @if (film.Edit)
+                        {
+                            <input @bind="@film.Info" placeholder="Описание" pattern="[а-яА-Я]+" />
+                        }
+                        else
+                        {
+                            @film.Info
+                        }
+                    </td>
+                    <td>
+                        @if (film.Edit)
+                        {
+                            <input @bind="@film.DateCreate" placeholder="01.01.2025" pattern="[а-яА-Я]+" />
+                        }
+                        else
+                        {
+                            @film.DateCreate.ToShortDateString()
+                        }
+                    </td>
+                    <td>
+                        @if (film.Edit)
+                        {
+                            <input @bind="@film.Rating" placeholder="10" pattern="[а-яА-Я]+" />
+                        }
+                        else
+                        {
+                            @film.Rating
+                        }
+                    </td>
+                    @if (isAdmin == true)
+                    {
+                        <td>
+                            @if (film.Edit == true)
+                            {
+
+                                <button @onclick="() => SaveFilm(film)">Сохранить</button>
+                                <button @onclick="() => CancelEdit(film)">Отмена</button>
+                            }
+                            else
+                            {
+                                <button @onclick="() => EditFilm(film)">Изменить</button>
+                                <button @onclick="() => DeleteFilm(film)">Удалить</button>
+                            }
+                        </td>
+                    }
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+}
+@code {
+    private List<FilmShort> films;
+    private bool isEditing = false;
+    private Film editingFilm;
+    private AddFilm newfilm = new AddFilm();
+    CurUser curUser;
+
+    private bool isAuthenticated;
+    private bool isAdmin;
+
+    [Inject] private ApiRequestService ApiRequest { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if(SingletoneUser.us != null)
+        {
+            isAdmin = SingletoneUser.us.isAdmin;
+            curUser = SingletoneUser.GetUser();
+
+            isAuthenticated = curUser != null;
+
+            isAdmin = curUser?.isAdmin == true;
+
+            if (isAuthenticated && isAdmin)
+            {
+                await GetAllFilms();
+            }
+        }
+    }
+
+    private async Task GetAllFilms()
+    {
+        var response = await ApiRequest.GetAllFilmsAsync();
+        var filmData = response?.Data?.movies ?? new List<FilmShort>();
+        films = filmData ?? [];
+    }
+
+    private async Task CreateFilm()
+    {
+        await ApiRequest.CreateFilmAsync(newfilm); 
+        await GetAllFilms();
+        newfilm = new AddFilm(); 
+    }
+
+    private void EditFilm(FilmShort film)
+    {
+        film.Edit = true;
+        editingFilm = new Film
+            {
+                id_Film = film.id_Film,
+                Name = film.Name,
+                Info = film.Info,
+                DateCreate = film.DateCreate,
+                Rating = film.Rating,
+                Namegenre = film.Namegenre
+            };
+    }
+
+    private async Task SaveFilm(FilmShort film)
+    {
+        ApiRequest.EditFilmAsync(editingFilm);
+        await GetAllFilms();
+        film.Edit = false;
+    }
+
+    private void CancelEdit(FilmShort film)
+    {
+        film.Edit = false;
+    }
+
+    private async Task DeleteFilm(FilmShort film)
+    {
+        ApiRequest.DeleteFilmAsync(film.id_Film);
+        await GetAllFilms();   
+    }
+}

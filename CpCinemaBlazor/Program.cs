@@ -12,11 +12,10 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
-
 builder.Services.AddScoped<ApiRequestService>();
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("http://localhost:5005/") });
 
-//builder.Services.AddScoped<LocalStorageService>();
+builder.Services.AddSingleton<UserService>();
 
 builder.Services.AddHttpClient("API", client =>
 {
@@ -52,6 +51,8 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
