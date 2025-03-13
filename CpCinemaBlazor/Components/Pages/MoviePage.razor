@@ -3,140 +3,281 @@
 @using CpCinemaBlazor.ApiRequest.Model
 @using static CpCinemaBlazor.ApiRequest.Model.Film
 @rendermode InteractiveServer
-<script src="_framework/blazor.server.js"></script>
-@if (isAdmin == true & isAuthenticated == true)
-{
-<h1>Добавление нового фильма</h1>
-<label class="form-label" for="name">Название</label>
-<input @bind="newfilm.Name" />
-<label class="form-label" for="info">Описание</label>
-<input @bind="newfilm.Info" />
-<label class="form-label" for="genre">Жанр</label>
-<input @bind="newfilm.Namegenre" />
-<label class="form-label" for="publishing-date">Дата выхода</label>
-<input type="date" @bind="newfilm.DateCreate" />
-<label class="form-label" for="rating">Рейтинг</label>
-<input @bind="newfilm.Rating" />
-<button @onclick="CreateFilm" class="button-17" role="button">Добавить</button>
-}
-else if(isAuthenticated == true)
-{
-<h1>Список фильмов</h1>
-<table class="table table-bordered">
-    <thead class="alert-dark">
-        <tr>
-            <td>Id</td>
-            <td>Name</td>
-            <td>Genre</td>
-            <td>Info</td>
-            <td>Date</td>
-            <td>Rating</td>
-            @if (isAdmin == true)
-            {
-                <th>Edit</th>
-            }
-        </tr>
-    </thead>
-    <tbody>
-        @if (films == null)
-        {
-            <tr>
-                <td colspan="7" class="text-center">Загрузка...</td>
-            </tr>
-        }
-        else if (!films.Any())
-        {
-            <tr>
-                <td colspan="7" class="text-center">Фильмы не найдены</td>
-            </tr>
-        }
-        else
-        {
-            @foreach (var film in films)
-            {
-                <tr>
-                    <td>
-                        @if (film.Edit)
-                        {
-                            <input @bind="@film.id_Film" placeholder="Id" pattern="[а-яА-Я]+" />
-                        }
-                        else
-                        {
-                            @film.id_Film
-                        }
-                    </td>
-                    <td>
-                        @if (film.Edit)
-                        {
-                            <input @bind="@film.Name" placeholder="Название" pattern="[а-яА-Я]+" />
-                        }
-                        else
-                        {
-                            @film.Name
-                        }
-                    </td>
-                    <td>
-                        @if (film.Edit)
-                        {
-                            <input @bind="@film.Namegenre" placeholder="комедия" pattern="[а-яА-Я]+" />
-                        }
-                        else
-                        {
-                            @film.Namegenre
-                        }
-                    </td>
-                    <td>
-                        @if (film.Edit)
-                        {
-                            <input @bind="@film.Info" placeholder="Описание" pattern="[а-яА-Я]+" />
-                        }
-                        else
-                        {
-                            @film.Info
-                        }
-                    </td>
-                    <td>
-                        @if (film.Edit)
-                        {
-                            <input @bind="@film.DateCreate" placeholder="01.01.2025" pattern="[а-яА-Я]+" />
-                        }
-                        else
-                        {
-                            @film.DateCreate.ToShortDateString()
-                        }
-                    </td>
-                    <td>
-                        @if (film.Edit)
-                        {
-                            <input @bind="@film.Rating" placeholder="10" pattern="[а-яА-Я]+" />
-                        }
-                        else
-                        {
-                            @film.Rating
-                        }
-                    </td>
-                    @if (isAdmin == true)
-                    {
-                        <td>
-                            @if (film.Edit == true)
-                            {
 
-                                <button @onclick="() => SaveFilm(film)">Сохранить</button>
-                                <button @onclick="() => CancelEdit(film)">Отмена</button>
-                            }
-                            else
-                            {
-                                <button @onclick="() => EditFilm(film)">Изменить</button>
-                                <button @onclick="() => DeleteFilm(film)">Удалить</button>
-                            }
-                        </td>
-                    }
-                </tr>
-            }
+<style>
+    /* Основные настройки */
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+        background-color: #f8f9fa;
+    }
+
+    /* Центрирование контента */
+    .centered-content {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+    }
+
+    /* Формы */
+    .form-control {
+        width: 100%;
+        padding: 0.5rem;
+        margin: 0.5rem 0;
+        border: 1px solid #ced4da;
+        border-radius: 0.75rem; /*увеличен до 0.75rem*/
+        transition: border-color 0.3s ease; /*добавил анимацию*/
+    }
+
+        .form-control:focus {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 0.2rem rgba(12, 105, 227, 0.25);
         }
-    </tbody>
-</table>
-}
+
+    /* Кнопки */
+    .btn {
+        padding: 0.5rem 1.5rem; /* увеличил горизонтальный padding */
+        border: none;
+        border-radius: 0.75rem; /* закругление 0.75rem */
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* тень для глубины */
+    }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+    .btn-primary {
+        background-color: #0d6efd;
+        color: white;
+    }
+
+        .btn-primary:hover {
+            background-color: #0b5ed7;
+        }
+
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+
+        .btn-danger:hover {
+            background-color: #bd2130;
+        }
+
+    /* Таблицы */
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1rem 0;
+    }
+
+        .table thead th {
+            background-color: #343a40;
+            color: white;
+            padding: 0.75rem;
+            border-radius: 0.5rem 0.5rem 0 0; /* закругление для заголовков таблицы */
+        }
+
+        .table td, .table th {
+            border: 1px solid #dee2e6;
+            padding: 0.75rem;
+        }
+
+    /* Заголовки */
+    h1 {
+        color: #212529;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 2rem;
+        border-radius: 0.5rem; /* закругление для заголовков */
+        padding: 1rem;
+        background-color: #e9ecef; /* фон для заголовков */
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* тень */
+    }
+
+    /* Валидация */
+    .text-danger {
+        color: #dc3545;
+        font-size: 0.875em;
+        margin-top: 0.25rem;
+    }
+
+    /* Дополнительные улучшения */
+    input[type="date"] {
+        border-radius: 0.75rem; /* для полей даты */
+    }
+
+    /* Эффекты наведения */
+    .form-control:hover {
+        border-color: #adb5bd;
+    }
+
+    .form-control:disabled {
+        background-color: #e9ecef;
+        border-color: #ced4da;
+    }
+</style>
+
+<PageTitle>Фильмы</PageTitle>
+
+<!-- Центрирование всего контента -->
+<div class="d-flex justify-content-center align-items-center vh-100">
+    <div class="col-md-8">
+        @if (isAdmin && isAuthenticated)
+        {
+            <div class="mb-5">
+                <h1 class="text-center mb-4">Добавление нового фильма</h1>
+                <div class="form-floating mb-3">
+                    <input @bind="newfilm.Name" class="form-control" placeholder="Название" />
+                    <label for="name">Название</label>
+                </div>
+                <div class="form-floating mb-3">
+                    <input @bind="newfilm.Info" class="form-control" placeholder="Описание" />
+                    <label for="info">Описание</label>
+                </div>
+                <div class="form-floating mb-3">
+                    <input @bind="newfilm.Namegenre" class="form-control" placeholder="Жанр" />
+                    <label for="genre">Жанр</label>
+                </div>
+                <div class="form-floating mb-3">
+                    <input type="date" @bind="newfilm.DateCreate" class="form-control" />
+                    <label for="publishing-date">Дата выхода</label>
+                </div>
+                <div class="form-floating mb-3">
+                    <input @bind="newfilm.Rating" class="form-control" placeholder="Рейтинг" />
+                    <label for="rating">Рейтинг</label>
+                </div>
+                <button @onclick="CreateFilm" class="w-100 btn btn-primary mb-3">Добавить</button>
+            </div>
+        }
+
+        @if (isAuthenticated)
+        {
+            <div class="table-responsive">
+                <h1 class="text-center mb-4">Список фильмов</h1>
+                <table class="table table-bordered">
+                    <thead class="alert-dark">
+                        <tr>
+                            <td>Id</td>
+                            <td>Название</td>
+                            <td>Жанр</td>
+                            <td>Описание</td>
+                            <td>Дата выхода</td>
+                            <td>Рейтинг</td>
+                            @if (isAdmin)
+                            {
+                                <th>Действия</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (films == null)
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center">Загрузка...</td>
+                            </tr>
+                        }
+                        else if (!films.Any())
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center">Фильмы не найдены</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var film in films)
+                            {
+                                <tr>
+                                    <td>
+                                        @if (film.Edit)
+                                        {
+                                            <input @bind="@film.id_Film" class="form-control" placeholder="Id" />
+                                        }
+                                        else
+                                        {
+                                            @film.id_Film
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (film.Edit)
+                                        {
+                                            <input @bind="@film.Name" class="form-control" placeholder="Название" />
+                                        }
+                                        else
+                                        {
+                                            @film.Name
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (film.Edit)
+                                        {
+                                            <input @bind="@film.Namegenre" class="form-control" placeholder="Жанр" />
+                                        }
+                                        else
+                                        {
+                                            @film.Namegenre
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (film.Edit)
+                                        {
+                                            <input @bind="@film.Info" class="form-control" placeholder="Описание" />
+                                        }
+                                        else
+                                        {
+                                            @film.Info
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (film.Edit)
+                                        {
+                                            <input @bind="@film.DateCreate" class="form-control" placeholder="01.01.2025" />
+                                        }
+                                        else
+                                        {
+                                            @film.DateCreate.ToShortDateString()
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (film.Edit)
+                                        {
+                                            <input @bind="@film.Rating" class="form-control" placeholder="Рейтинг" />
+                                        }
+                                        else
+                                        {
+                                            @film.Rating
+                                        }
+                                    </td>
+                                    @if (isAdmin)
+                                    {
+                                        <td>
+                                            @if (film.Edit)
+                                            {
+                                                <button @onclick="() => SaveFilm(film)" class="btn btn-success me-2">Сохранить</button>
+                                                <button @onclick="() => CancelEdit(film)" class="btn btn-secondary">Отмена</button>
+                                            }
+                                            else
+                                            {
+                                                <button @onclick="() => EditFilm(film)" class="btn btn-primary me-2">Изменить</button>
+                                                <button @onclick="() => DeleteFilm(film)" class="btn btn-danger">Удалить</button>
+                                            }
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
 @code {
     private List<FilmShort> films;
     private bool isEditing = false;
@@ -151,34 +292,26 @@ else if(isAuthenticated == true)
 
     protected override async Task OnInitializedAsync()
     {
-        if(SingletoneUser.us != null)
-        {
-            isAdmin = SingletoneUser.us.isAdmin;
-            curUser = SingletoneUser.GetUser();
+        curUser = SingletoneUser.GetUser();
 
-            isAuthenticated = curUser != null;
+        isAuthenticated = curUser != null;
 
-            isAdmin = curUser?.isAdmin == true;
+        isAdmin = curUser?.isAdmin == true;
 
-            if (isAuthenticated && isAdmin)
-            {
-                await GetAllFilms();
-            }
-        }
+        await GetAllFilms();
     }
 
     private async Task GetAllFilms()
     {
         var response = await ApiRequest.GetAllFilmsAsync();
-        var filmData = response?.Data?.movies ?? new List<FilmShort>();
-        films = filmData ?? [];
+        films = response?.Data?.movies ?? [];
     }
 
     private async Task CreateFilm()
     {
-        await ApiRequest.CreateFilmAsync(newfilm); 
+        await ApiRequest.CreateFilmAsync(newfilm);
         await GetAllFilms();
-        newfilm = new AddFilm(); 
+        newfilm = new AddFilm();
     }
 
     private void EditFilm(FilmShort film)
@@ -210,6 +343,6 @@ else if(isAuthenticated == true)
     private async Task DeleteFilm(FilmShort film)
     {
         ApiRequest.DeleteFilmAsync(film.id_Film);
-        await GetAllFilms();   
+        await GetAllFilms();
     }
 }

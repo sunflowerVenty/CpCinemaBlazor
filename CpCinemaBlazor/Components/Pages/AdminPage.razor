@@ -1,144 +1,270 @@
 ﻿@page "/adminpage"
 
+
 @using CpCinemaBlazor.ApiRequest
 @using CpCinemaBlazor.ApiRequest.Model
 @using Microsoft.AspNetCore.Authorization
 @using static CpCinemaBlazor.ApiRequest.Model.User
 @rendermode InteractiveServer
 
+<style>
+    /* Основные настройки */
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+        background-color: #f8f9fa;
+    }
+
+    /* Центрирование контента */
+    .centered-content {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+    }
+
+    /* Формы */
+    .form-control {
+        width: 100%;
+        padding: 0.5rem;
+        margin: 0.5rem 0;
+        border: 1px solid #ced4da;
+        border-radius: 0.75rem; /*увеличен до 0.75rem*/
+        transition: border-color 0.3s ease; /*добавил анимацию*/
+    }
+
+        .form-control:focus {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 0.2rem rgba(12, 105, 227, 0.25);
+        }
+
+    /* Кнопки */
+    .btn {
+        padding: 0.5rem 1.5rem; /* увеличил горизонтальный padding */
+        border: none;
+        border-radius: 0.75rem; /* закругление 0.75rem */
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* тень для глубины */
+    }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+    .btn-primary {
+        background-color: #0d6efd;
+        color: white;
+    }
+
+        .btn-primary:hover {
+            background-color: #0b5ed7;
+        }
+
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+
+        .btn-danger:hover {
+            background-color: #bd2130;
+        }
+
+    /* Таблицы */
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1rem 0;
+    }
+
+        .table thead th {
+            background-color: #343a40;
+            color: white;
+            padding: 0.75rem;
+            border-radius: 0.5rem 0.5rem 0 0; /* закругление для заголовков таблицы */
+        }
+
+        .table td, .table th {
+            border: 1px solid #dee2e6;
+            padding: 0.75rem;
+        }
+
+    /* Заголовки */
+    h1 {
+        color: #212529;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 2rem;
+        border-radius: 0.5rem; /* закругление для заголовков */
+        padding: 1rem;
+        background-color: #e9ecef; /* фон для заголовков */
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* тень */
+    }
+
+    /* Валидация */
+    .text-danger {
+        color: #dc3545;
+        font-size: 0.875em;
+        margin-top: 0.25rem;
+    }
+
+    /* Дополнительные улучшения */
+    input[type="date"] {
+        border-radius: 0.75rem; /* для полей даты */
+    }
+
+    /* Эффекты наведения */
+    .form-control:hover {
+        border-color: #adb5bd;
+    }
+
+    .form-control:disabled {
+        background-color: #e9ecef;
+        border-color: #ced4da;
+    }
+</style>
+
 <PageTitle>AdminPanel</PageTitle>
-<label class="form-label" for="rating">Имя</label>
-<input @bind="addUser.Name" />
-<p></p>
-<label class="form-label" for="rating">О себе</label>
-<input @bind="addUser.AboutMe" />
-<p></p>
-<label class="form-label" for="rating">Почта</label>
-<input @bind="addUser.Email" />
-<p></p>
-<label class="form-label" for="rating">Пароль</label>
-<input @bind="addUser.Password" />
-<p></p>
-<label class="form-label" for="rating">Роль: админ</label>
-<input type="checkbox" @bind="addUser.Admin" />
-<p></p>
-<button @onclick="CreateUser" class="button-17" role="button">Добавить</button>
 
-@if (isAdmin == true)
-{
-<p class="text-center fw-bold mb-5 mx-1 mx-md-4 mt-4">
-    <table class="table table-bordered">
-        <thead class="alert-dark">
-            <tr>
-                <td>id_User</td>
-                <td>isAdmin</td>
-                <td>Name</td>
-                <td>AboutMe</td>
-                <td>Email</td>
-                <td>Password</td>
-                <td>Edit</td>
-            </tr>
-        </thead>
+<!-- Центрирование контента -->
+<div class="d-flex justify-content-center align-items-center vh-100">
+    <div class="col-md-8">
+        <!-- Форма добавления пользователя -->
+        <div class="mb-5">
+            <label class="form-label">Имя</label>
+            <input @bind="addUser.Name" class="form-control mb-3" />
 
-        <tbody>
-            @if (users == null)
-            {
-                <tr>
-                    <td colspan="6" class="text-center">Loading...</td>
-                </tr>
-            }
-            else if (!users.Any())
-            {
-                <tr>
-                    <td colspan="6" class="text-center">No users found</td>
-                </tr>
-            }
-            else
-            {
-                @foreach (var user in users)
-                {
-                    <tr>
-                        <td>
-                            @user.id_User
-                        </td>
-                        <td>
-                            @if (user.Admin == false)
+            <label class="form-label">О себе</label>
+            <input @bind="addUser.AboutMe" class="form-control mb-3" />
+
+            <label class="form-label">Почта</label>
+            <input @bind="addUser.Email" class="form-control mb-3" />
+
+            <label class="form-label">Пароль</label>
+            <input @bind="addUser.Password" class="form-control mb-3" />
+
+            <label class="form-label">Роль: админ</label>
+            <input type="checkbox" @bind="addUser.Admin" class="mb-3" />
+
+            <button @onclick="CreateUser" class="button-17 w-100 mt-3" role="button">Добавить</button>
+        </div>
+
+        <!-- Таблица пользователей -->
+        @if (isAdmin)
+        {
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="alert-dark">
+                        <tr>
+                            <td>id_User</td>
+                            <td>Роль</td>
+                            <td>Имя</td>
+                            <td>О себе</td>
+                            <td>Email</td>
+                            <td>Пароль</td>
+                            <td>Действия</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (users == null)
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center">Загрузка...</td>
+                            </tr>
+                        }
+                        else if (!users.Any())
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center">Нет пользователей</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var user in users)
                             {
-                                <p>Пользователь</p>
+                                <tr>
+                                    <td>@user.id_User</td>
+                                    <td>
+                                        @if (user.Admin)
+                                        {
+                                            <span class="text-success">Админ</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-secondary">Пользователь</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (user.Edit)
+                                        {
+                                            <input @bind="@user.Name" class="form-control" placeholder="Имя" pattern="[а-яА-Я]+" />
+                                        }
+                                        else
+                                        {
+                                            @user.Name
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (user.Edit)
+                                        {
+                                            <input @bind="@user.AboutMe" class="form-control" placeholder="О себе" />
+                                        }
+                                        else
+                                        {
+                                            @user.AboutMe
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (user.Edit)
+                                        {
+                                            <input @bind="@user.Email" class="form-control" placeholder="Почта" />
+                                        }
+                                        else
+                                        {
+                                            @user.Email
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (user.Edit)
+                                        {
+                                            <input @bind="@user.Password" class="form-control" placeholder="Пароль" />
+                                        }
+                                        else
+                                        {
+                                            @user.Password
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (user.Edit)
+                                        {
+                                            <button @onclick="() => SaveUser(user)" class="btn btn-success me-2">Сохранить</button>
+                                            <button @onclick="() => CancelUser(user)" class="btn btn-secondary">Отмена</button>
+                                        }
+                                        else
+                                        {
+                                            <button @onclick="() => EditUser(user)" class="btn btn-primary me-2">Изменить</button>
+                                            <button @onclick="() => DeleteUser(user)" class="btn btn-danger me-2">Удалить</button>
+                                            @if (!user.Admin)
+                                            {
+                                                <button @onclick="() => MakeAdmin(user)" class="btn btn-warning me-2">Сделать админом</button>
+                                            }
+                                            else
+                                            {
+                                                <button @onclick="() => MakeUser(user)" class="btn btn-info">Сделать пользователем</button>
+                                            }
+                                        }
+                                    </td>
+                                </tr>
                             }
-                            else if (user.Admin == true)
-                            {
-                                <p>Админ</p>
-                            }
-                            
-                        </td>
-                        <td>
-                            @if (user.Edit)
-                            {
-                                <input @bind="@user.Name" placeholder="Имя" pattern="[а-яА-Я]+" />
-                            }
-                            else
-                            {
-                                @user.Name
-                            }
-                        </td>
-                        <td>
-                            @if (user.Edit)
-                            {
-                                <input @bind="@user.AboutMe" placeholder="О себе" pattern="[а-яА-Я]+" />
-                            }
-                            else
-                            {
-                                @user.AboutMe
-                            }
-                        </td>
-                        <td>
-                            @if (user.Edit)
-                            {
-                                <input @bind="@user.Email" placeholder="Почта"/>
-                            }
-                            else
-                            {
-                                @user.Email
-                            }
-                        </td>
-                        <td>
-                            @if (user.Edit)
-                            {
-                                <input @bind="@user.Password" placeholder="Пароль" />
-                            }
-                            else
-                            {
-                                @user.Password
-                            }
-                        </td>                        
-                        <td>
-                            @if (user.Edit)
-                            {
-                                <button @onclick="() => SaveUser(user)">Сохранить</button>
-                                <button @onclick="() => CancelUser(user)">Отмена</button>
-                            }
-                            else
-                            {
-                                <button @onclick="() => EditUser(user)">Изменить</button>
-                                <button @onclick="() => DeleteUser(user)">Удалить</button>
-                                @if (user.Admin == false)
-                                {
-                                    <button style="background-color: crimson" @onclick="() => MakeAdmin(user)">Сделать админом</button>
-                                }
-                                else if (user.Admin == true)
-                                {
-                                    <button style="background-color: cadetblue" @onclick="() => MakeUser(user)">Сделать пользователем</button>
-                                }
-                            }
-                        </td>
-                    </tr>
-                }
-            }
-        </tbody>
-    </table>
-</p>
-}
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
 @code {
 
 
@@ -255,75 +381,3 @@
         GetUsers();
     }
 }
-
-<style>
-    .button-17 {
-        align-items: center;
-        appearance: none;
-        background-color: #fff;
-        border-radius: 24px;
-        border-style: none;
-        box-shadow: rgba(0, 0, 0, .2) 0 3px 5px -1px,rgba(0, 0, 0, .14) 0 6px 10px 0,rgba(0, 0, 0, .12) 0 1px 18px 0;
-        box-sizing: border-box;
-        color: #3c4043;
-        cursor: pointer;
-        display: inline-flex;
-        fill: currentcolor;
-        font-family: "Google Sans",Roboto,Arial,sans-serif;
-        font-size: 14px;
-        font-weight: 500;
-        height: 48px;
-        justify-content: center;
-        letter-spacing: .25px;
-        line-height: normal;
-        max-width: 100%;
-        overflow: visible;
-        padding: 2px 24px;
-        position: relative;
-        text-align: center;
-        text-transform: none;
-        transition: box-shadow 280ms cubic-bezier(.4, 0, .2, 1),opacity 15ms linear 30ms,transform 270ms cubic-bezier(0, 0, .2, 1) 0ms;
-        user-select: none;
-        -webkit-user-select: none;
-        touch-action: manipulation;
-        width: auto;
-        will-change: transform,opacity;
-        z-index: 0;
-    }
-
-        .button-17:hover {
-            background: #F6F9FE;
-            color: #174ea6;
-        }
-
-        .button-17:active {
-            box-shadow: 0 4px 4px 0 rgb(60 64 67 / 30%), 0 8px 12px 6px rgb(60 64 67 / 15%);
-            outline: none;
-        }
-
-        .button-17:focus {
-            outline: none;
-            border: 2px solid #4285f4;
-        }
-
-        .button-17:not(:disabled) {
-            box-shadow: rgba(60, 64, 67, .3) 0 1px 3px 0, rgba(60, 64, 67, .15) 0 4px 8px 3px;
-        }
-
-            .button-17:not(:disabled):hover {
-                box-shadow: rgba(60, 64, 67, .3) 0 2px 3px 0, rgba(60, 64, 67, .15) 0 6px 10px 4px;
-            }
-
-            .button-17:not(:disabled):focus {
-                box-shadow: rgba(60, 64, 67, .3) 0 1px 3px 0, rgba(60, 64, 67, .15) 0 4px 8px 3px;
-            }
-
-            .button-17:not(:disabled):active {
-                box-shadow: rgba(60, 64, 67, .3) 0 4px 4px 0, rgba(60, 64, 67, .15) 0 8px 12px 6px;
-            }
-
-        .button-17:disabled {
-            box-shadow: rgba(60, 64, 67, .3) 0 1px 3px 0, rgba(60, 64, 67, .15) 0 4px 8px 3px;
-        }
-
-</style>

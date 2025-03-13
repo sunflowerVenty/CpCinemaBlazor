@@ -7,27 +7,156 @@
 @rendermode InteractiveServer
 @inject NavigationManager Navigation
 
+<style>
+    /* Основные настройки */
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+        background-color: #f8f9fa;
+    }
+
+    /* Центрирование контента */
+    .centered-content {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+    }
+
+    /* Формы */
+    .form-control {
+        width: 100%;
+        padding: 0.5rem;
+        margin: 0.5rem 0;
+        border: 1px solid #ced4da;
+        border-radius: 0.75rem; /*увеличен до 0.75rem*/
+        transition: border-color 0.3s ease; /*добавил анимацию*/
+    }
+
+        .form-control:focus {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 0.2rem rgba(12, 105, 227, 0.25);
+        }
+
+    /* Кнопки */
+    .btn {
+        padding: 0.5rem 1.5rem; /* увеличил горизонтальный padding */
+        border: none;
+        border-radius: 0.75rem; /* закругление 0.75rem */
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* тень для глубины */
+    }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+    .btn-primary {
+        background-color: #0d6efd;
+        color: white;
+    }
+
+        .btn-primary:hover {
+            background-color: #0b5ed7;
+        }
+
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+
+        .btn-danger:hover {
+            background-color: #bd2130;
+        }
+
+    /* Таблицы */
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1rem 0;
+    }
+
+        .table thead th {
+            background-color: #343a40;
+            color: white;
+            padding: 0.75rem;
+            border-radius: 0.5rem 0.5rem 0 0; /* закругление для заголовков таблицы */
+        }
+
+        .table td, .table th {
+            border: 1px solid #dee2e6;
+            padding: 0.75rem;
+        }
+
+    /* Заголовки */
+    h1 {
+        color: #212529;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 2rem;
+        border-radius: 0.5rem; /* закругление для заголовков */
+        padding: 1rem;
+        background-color: #e9ecef; /* фон для заголовков */
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* тень */
+    }
+
+    /* Валидация */
+    .text-danger {
+        color: #dc3545;
+        font-size: 0.875em;
+        margin-top: 0.25rem;
+    }
+
+    /* Дополнительные улучшения */
+    input[type="date"] {
+        border-radius: 0.75rem; /* для полей даты */
+    }
+
+    /* Эффекты наведения */
+    .form-control:hover {
+        border-color: #adb5bd;
+    }
+
+    .form-control:disabled {
+        background-color: #e9ecef;
+        border-color: #ced4da;
+    }
+</style>
+
 <h3>Профиль пользователя</h3>
 
-@if (user == null)
-{
-    <p>Пользователь не авторизован.</p>
-}
-else
-{
-    <div class="user-profile-container">
-        <div class="user-info">
-            <h4>@user.Name</h4>
-            <p><strong>Id:</strong> @user.id_User</p>
-            <p><strong>Имя:</strong> @user.Name</p>
-            <p><strong>О себе:</strong> @user.AboutMe</p>
-        </div>
+<div class="centered-content">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card p-4 shadow rounded-3">
+                    <h3 class="text-center mb-4">Профиль пользователя</h3>
 
-        <div class="user-actions">
-            <button class="btn btn-primary" @onclick="Logout">Выйти</button>
+                    @if (user == null)
+                    {
+                        <p class="text-center">Пользователь не авторизован.</p>
+                    }
+                    else
+                    {
+                        <div class="user-info mb-4">
+                            <h4 class="text-center">@user.Name</h4>
+                            <p><strong>Id:</strong> @user.id_User</p>
+                            <p><strong>Имя:</strong> @user.Name</p>
+                            <p><strong>О себе:</strong> @user.AboutMe</p>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary" @onclick="Logout">Выйти</button>
+                        </div>
+                    }
+                </div>
+            </div>
         </div>
     </div>
-}
+</div>
 
 @code {
     private CurUser user;

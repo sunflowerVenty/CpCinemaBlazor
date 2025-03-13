@@ -16,37 +16,158 @@
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 
+<style>
+    /* Основные настройки */
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+        background-color: #f8f9fa;
+    }
+
+    /* Центрирование контента */
+    .centered-content {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+    }
+
+    /* Формы */
+    .form-control {
+        width: 100%;
+        padding: 0.5rem;
+        margin: 0.5rem 0;
+        border: 1px solid #ced4da;
+        border-radius: 0.75rem; /*увеличен до 0.75rem*/
+        transition: border-color 0.3s ease; /*добавил анимацию*/
+    }
+
+        .form-control:focus {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 0.2rem rgba(12, 105, 227, 0.25);
+        }
+
+    /* Кнопки */
+    .btn {
+        padding: 0.5rem 1.5rem; /* увеличил горизонтальный padding */
+        border: none;
+        border-radius: 0.75rem; /* закругление 0.75rem */
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* тень для глубины */
+    }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+    .btn-primary {
+        background-color: #0d6efd;
+        color: white;
+    }
+
+        .btn-primary:hover {
+            background-color: #0b5ed7;
+        }
+
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+
+        .btn-danger:hover {
+            background-color: #bd2130;
+        }
+
+    /* Таблицы */
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1rem 0;
+    }
+
+        .table thead th {
+            background-color: #343a40;
+            color: white;
+            padding: 0.75rem;
+            border-radius: 0.5rem 0.5rem 0 0; /* закругление для заголовков таблицы */
+        }
+
+        .table td, .table th {
+            border: 1px solid #dee2e6;
+            padding: 0.75rem;
+        }
+
+    /* Заголовки */
+    h1 {
+        color: #212529;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 2rem;
+        border-radius: 0.5rem; /* закругление для заголовков */
+        padding: 1rem;
+        background-color: #e9ecef; /* фон для заголовков */
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* тень */
+    }
+
+    /* Валидация */
+    .text-danger {
+        color: #dc3545;
+        font-size: 0.875em;
+        margin-top: 0.25rem;
+    }
+
+    /* Дополнительные улучшения */
+    input[type="date"] {
+        border-radius: 0.75rem; /* для полей даты */
+    }
+
+    /* Эффекты наведения */
+    .form-control:hover {
+        border-color: #adb5bd;
+    }
+
+    .form-control:disabled {
+        background-color: #e9ecef;
+        border-color: #ced4da;
+    }
+</style>
+
 <PageTitle>Регистрация</PageTitle>
 
-<h1>Регистрация</h1>
-<div class="row">
+<!-- Центрирование контента -->
+<div class="d-flex justify-content-center align-items-center vh-100">
     <div class="col-md-4">
         <section>
             <EditForm Model="@Input" OnValidSubmit="RegBtn" FormName="RegForm">
                 <DataAnnotationsValidator />
+                <h2 class="text-center mb-4">Регистрация</h2>
                 <hr />
                 <ValidationSummary class="text-danger" role="alert" />
+
                 <div class="form-floating mb-3">
                     <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" aria-required="true" />
                     <label for="email" class="form-label">Почта</label>
                     <ValidationMessage For="() => Input.Email" class="text-danger" />
                 </div>
+
                 <div class="form-floating mb-3">
-                    <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="current-password" aria-required="true"/>
+                    <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" />
                     <label for="password" class="form-label">Пароль</label>
                     <ValidationMessage For="() => Input.Password" class="text-danger" />
                 </div>
-                
-                <ValidationSummary class="text-danger" role="alert" />
+
                 <div class="form-floating mb-3">
                     <InputText @bind-Value="Input.Name" class="form-control" autocomplete="username" aria-required="true" />
-                    <label for="email" class="form-label">Имя</label>
+                    <label for="name" class="form-label">Имя</label>
                     <ValidationMessage For="() => Input.Name" class="text-danger" />
                 </div>
-                <ValidationSummary class="text-danger" role="alert" />
+
                 <div class="form-floating mb-3">
                     <InputText @bind-Value="Input.AboutMe" class="form-control" autocomplete="username" />
-                    <label for="email" class="form-label">О себе</label>
+                    <label for="aboutme" class="form-label">О себе</label>
                     <ValidationMessage For="() => Input.AboutMe" class="text-danger" />
                 </div>
 
@@ -62,13 +183,6 @@
     AddUser user = new AddUser();
     [Inject] private ApiRequestService ApiRequest { get; set; }
     private string errorMessage;
-
-    protected override void OnInitialized()
-    {
-        NotificationService.OnNotificationAdded += HandleNotificationAdded;
-    }
-
-    private List<NotificationService.NotificationModel> Notifications = new List<NotificationService.NotificationModel>();
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -116,25 +230,23 @@
                 bool Admin = Convert.ToBoolean(principal.FindFirst("isAdmin")?.Value);
                 // SingletoneUser.InitUser(new CurUser { id_User = Id, AboutMe = About, Name = NameT, isAdmin = Admin, Token = token });
 
-                if (Admin == true)
+                if (Admin)
                 {
                     Navigation.NavigateTo("/adminpage");
                 }
-                else if (Admin == false)
+                else
                 {
                     Navigation.NavigateTo("/userpage");
                 }
             }
             else
             {
-                Console.WriteLine("Authorization failed: No token received");
+                errorMessage = "Ошибка регистрации: не получен токен";
             }
         }
         catch (Exception ex)
         {
-            errorMessage = "Произошла ошибка при регистрации.";
-            NotificationService.ShowError(errorMessage);
+            errorMessage = "Произошла ошибка при регистрации: " + ex.Message;
         }
-
     }
 }
