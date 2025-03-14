@@ -9,6 +9,7 @@ using JsonSerializer = System.Text.Json.JsonSerializer;
 using CpCinemaBlazor.ApiRequest.Services;
 using System;
 using Azure;
+using Amazon.SimpleNotificationService.Util;
 
 namespace CpCinemaBlazor.ApiRequest
 {
@@ -92,8 +93,8 @@ namespace CpCinemaBlazor.ApiRequest
 
             var options = new JsonSerializerOptions
             {
-                PropertyNameCaseInsensitive = true, // Игнорировать регистр свойств
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase // Сопоставлять snake_case с CamelCase
+                PropertyNameCaseInsensitive = true, 
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase 
             };
             var tokenResponse = JsonSerializer.Deserialize<TokenResponse>(responseContent, options);
             var token = tokenResponse.Token;
@@ -115,8 +116,8 @@ namespace CpCinemaBlazor.ApiRequest
             
             var options = new JsonSerializerOptions
             {
-                PropertyNameCaseInsensitive = true, // Игнорировать регистр свойств
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase // Сопоставлять snake_case с CamelCase
+                PropertyNameCaseInsensitive = true, 
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase 
             };
             var tokenResponse = JsonSerializer.Deserialize<TokenResponse>(responseContent, options);
             var token = tokenResponse.Token;
@@ -204,6 +205,227 @@ namespace CpCinemaBlazor.ApiRequest
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Ошибка при запросе");
+            }
+        }
+
+        public async Task<List<Messages>> GetAllMessagesAsync()
+        {
+            var url = "api/Messages/GetAllMessages";
+
+            try
+            {
+                var response = await _httpClient.GetAsync(url).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
+
+                var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+                if (string.IsNullOrEmpty(responseContent))
+                {
+                    _logger.LogWarning("Ответ от сервера пуст.");
+                    return [];
+                }
+
+                var messages = JsonSerializer.Deserialize<List<Messages>>(responseContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                return messages ?? [];
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при запросе всех сообщений");
+                return [];
+            }
+        }
+
+        public async Task<Messages?> GetMessageByIdAsync(int id)
+        {
+            var url = $"api/Messages/GetMessageById/{id}";
+
+            try
+            {
+                var response = await _httpClient.GetAsync(url).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
+
+                var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+                if (string.IsNullOrEmpty(responseContent))
+                {
+                    _logger.LogWarning("Ответ от сервера пуст.");
+                    return null;
+                }
+
+                var message = JsonSerializer.Deserialize<Messages>(responseContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                return message;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при запросе сообщения по ID");
+                return null;
+            }
+        }
+
+        public async Task<bool> CreateMessageAsync(Messages message)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync("api/Messages/CreateMessage", message);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError($"Ошибка при создании сообщения: {errorContent}");
+                    return false;
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при создании сообщения");
+                return false;
+            }
+        }
+
+        public async Task<bool> UpdateMessageAsync(Messages message)
+        {
+            try
+            {
+                var response = await _httpClient.PutAsJsonAsync("api/Messages/UpdateMessage", message);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError($"Ошибка при обновлении сообщения: {errorContent}");
+                    return false;
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при обновлении сообщения");
+                return false;
+            }
+        }
+
+        public async Task<bool> DeleteMessageAsync(int id)
+        {
+            try
+            {
+                var response = await _httpClient.DeleteAsync($"api/Messages/DeleteMessage/{id}");
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError($"Ошибка при удалении сообщения: {errorContent}");
+                    return false;
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при удалении сообщения");
+                return false;
+            }
+        }
+
+        public async Task<List<Messages>> GetMessagesByFilmIdAsync(int filmId)
+        {
+            var url = $"api/Messages/GetMessagesByFilmId/{filmId}";
+
+            try
+            {
+                var response = await _httpClient.GetAsync(url).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
+
+                var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+                if (string.IsNullOrEmpty(responseContent))
+                {
+                    _logger.LogWarning("Ответ от сервера пуст.");
+                    return [];
+                }
+
+                var messages = JsonSerializer.Deserialize<List<Messages>>(responseContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                return messages ?? [];
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при запросе сообщений для фильма");
+                return [];
+            }
+        }
+
+        public async Task<List<Messages>> GetChatMessagesAsync(int userId, int recipientId)
+        {
+            var url = $"api/Messages/GetChatMessages?userId={userId}&recipientId={recipientId}";
+
+            try
+            {
+                var response = await _httpClient.GetAsync(url).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
+
+                var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+                if (string.IsNullOrEmpty(responseContent))
+                {
+                    _logger.LogWarning("Ответ от сервера пуст.");
+                    return [];
+                }
+
+                var messages = JsonSerializer.Deserialize<List<Messages>>(responseContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                return messages ?? [];
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при запросе чат-сообщений");
+                return [];
+            }
+        }
+
+        public async Task<List<Messages>> GetLatestMessagesForUserAsync(int userId)
+        {
+            var url = $"api/Messages/GetLatestMessagesForUser/{userId}";
+
+            try
+            {
+                var response = await _httpClient.GetAsync(url).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
+
+                var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+                if (string.IsNullOrEmpty(responseContent))
+                {
+                    _logger.LogWarning("Ответ от сервера пуст.");
+                    return [];
+                }
+
+                var messages = JsonSerializer.Deserialize<List<Messages>>(responseContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                return messages ?? [];
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при запросе последних сообщений пользователя");
+                return [];
             }
         }
     }

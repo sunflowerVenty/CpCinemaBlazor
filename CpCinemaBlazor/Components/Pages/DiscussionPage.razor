@@ -1,0 +1,91 @@
+﻿@page "/discuss"
+@using CpCinemaBlazor.ApiRequest.Model
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+
+<PageTitle>Обсуждение фильма</PageTitle>
+
+<h3>Обсуждение фильма: @filmName</h3>
+
+@if (messages == null)
+{
+    <p>Загрузка сообщений...</p>
+}
+else if (!messages.Any())
+{
+    <p>Нет сообщений для этого фильма.</p>
+}
+else
+{
+    <div class="list-group">
+        @foreach (var message in messages)
+        {
+            <div class="list-group-item">
+                <div class="d-flex w-100 justify-content-between">
+                    <h5 class="mb-1">@message.UserName</h5>
+                    <small>@message.dateTimeSent.ToString("g")</small>
+                </div>
+                <p class="mb-1">@message.Message</p>
+                @if (!string.IsNullOrEmpty(message.ImageURL))
+                {
+                    <img src="@message.ImageURL" alt="Изображение" class="img-thumbnail" style="max-width: 200px;" />
+                }
+            </div>
+        }
+    </div>
+}
+
+<h4>Добавить сообщение</h4>
+<div class="form-group">
+    <label for="message">Сообщение:</label>
+    <textarea @bind="newMessage.Message" class="form-control" id="message" rows="3"></textarea>
+</div>
+<div class="form-group">
+    <label for="image-url">URL изображения (опционально):</label>
+    <input @bind="newMessage.ImageURL" class="form-control" id="image-url" />
+</div>
+<button @onclick="AddMessage" class="btn btn-primary mt-3">Отправить</button>
+
+@code {
+    [Parameter]
+    public int FilmId { get; set; }
+
+    private string filmName;
+    private List<MessageShort> messages;
+    private AddMessage newMessage = new AddMessage();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Загрузка данных о фильме и сообщениях
+        var filmResponse = await Http.GetFromJsonAsync<Film>($"/api/films/{FilmId}");
+        filmName = filmResponse.Name;
+
+        var messagesResponse = await Http.GetFromJsonAsync<MessageDataContainer>($"/api/messages?filmId={FilmId}");
+        messages = messagesResponse.messages;
+    }
+
+    private async Task AddMessage()
+    {
+        newMessage.Film_ = FilmId;
+        newMessage.User_Name = GetCurrentUserId(); // Получите ID текущего пользователя
+        newMessage.Recipient_Name = 0; // Если получатель не обязателен, установите значение по умолчанию
+
+        await Http.PostAsJsonAsync("/api/messages", newMessage);
+        messages.Add(new MessageShort
+            {
+                Id_Message = messages.Count + 1,
+                Message = newMessage.Message,
+                dateTimeSent = DateTime.Now,
+                UserName = "Вы", // Установите имя текущего пользователя
+                ImageURL = newMessage.ImageURL
+            });
+
+        newMessage = new AddMessage(); // Очистка формы
+    }
+
+    private int GetCurrentUserId()
+    {
+        // Реализуйте логику получения ID текущего пользователя
+        return 1; // Пример
+    }
+}

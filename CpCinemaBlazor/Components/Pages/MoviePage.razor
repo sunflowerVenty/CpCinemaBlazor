@@ -1,8 +1,11 @@
 ﻿@page "/filmpage"
 @using CpCinemaBlazor.ApiRequest
 @using CpCinemaBlazor.ApiRequest.Model
+@using Microsoft.EntityFrameworkCore.Metadata.Internal
 @using static CpCinemaBlazor.ApiRequest.Model.Film
 @rendermode InteractiveServer
+@inject NavigationManager Navigation
+
 
 <style>
     /* Основные настройки */
@@ -253,6 +256,9 @@
                                             @film.Rating
                                         }
                                     </td>
+                                    <td>
+                                        <button @onclick="() => Discuss()" class="btn btn-success me-2">Обсуждение</button>
+                                    </td>
                                     @if (isAdmin)
                                     {
                                         <td>
@@ -344,5 +350,10 @@
     {
         ApiRequest.DeleteFilmAsync(film.id_Film);
         await GetAllFilms();
+    }
+
+    private async Task Discuss()
+    {
+        Navigation.NavigateTo("/discuss");
     }
 }
