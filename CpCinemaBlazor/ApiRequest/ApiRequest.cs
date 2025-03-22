@@ -338,7 +338,7 @@ namespace CpCinemaBlazor.ApiRequest
 
         public async Task<List<Messages>> GetMessagesByFilmIdAsync(int filmId)
         {
-            var url = $"api/Messages/GetMessagesByFilmId/{filmId}";
+            var url = $"api/Message/GetMessagesByFilmId/{filmId}";
 
             try
             {

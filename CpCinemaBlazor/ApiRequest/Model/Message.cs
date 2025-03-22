@@ -8,10 +8,10 @@ namespace CpCinemaBlazor.ApiRequest.Model
         public int Id_Message { get; set; }
         public string Message { get; set; }
         public DateTime dateTimeSent { get; set; }
-        public string FilmName { get; set; } 
-        public string UserName { get; set; } 
-        public string RecipientName { get; set; } 
+        public int Film_Id { get; set; } 
+        public int User_iD { get; set; }
         public string ImageURL { get; set; }
+        public int Recipient_Id { get; set; }
     }
     public class Messages
     {
@@ -19,11 +19,11 @@ namespace CpCinemaBlazor.ApiRequest.Model
         public int Id_Message { get; set; }
         public string Message { get; set; }
         public DateTime dateTimeSent { get; set; }
-        public int Film_Name { get; set; }
+        public int Film_Id { get; set; }
         public string FilmName { get; set; } 
-        public int User_Name { get; set; }
+        public int User_Id { get; set; }
         public string UserName { get; set; } 
-        public int Recipient_Name { get; set; }
+        public int Recipient_Id { get; set; }
         public string RecipientName { get; set; } 
         public string ImageURL { get; set; }
     }

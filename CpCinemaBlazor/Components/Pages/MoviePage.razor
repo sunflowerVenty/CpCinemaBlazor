@@ -257,7 +257,7 @@
                                         }
                                     </td>
                                     <td>
-                                        <button @onclick="() => Discuss()" class="btn btn-success me-2">Обсуждение</button>
+                                        <button @onclick="() => Discuss(film)" class="btn btn-success me-2">Обсуждение</button>
                                     </td>
                                     @if (isAdmin)
                                     {
@@ -312,6 +312,11 @@
         var response = await ApiRequest.GetAllFilmsAsync();
         films = response?.Data?.movies ?? [];
     }
+    
+    private async Task GetAllMessages(int id_Film)
+    {
+        var response = await ApiRequest.GetMessagesByFilmIdAsync(id_Film);
+    }
 
     private async Task CreateFilm()
     {
@@ -352,8 +357,9 @@
         await GetAllFilms();
     }
 
-    private async Task Discuss()
+    private async Task Discuss(FilmShort film)
     {
-        Navigation.NavigateTo("/discuss");
+        await GetAllMessages(film.id_Film);
+        Navigation.NavigateTo($"/discuss/{film.id_Film}");
     }
 }

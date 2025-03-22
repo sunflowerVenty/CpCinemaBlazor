@@ -1,4 +1,4 @@
-﻿@page "/discuss"
+﻿@page "/discuss/{filmId:int}"
 @using CpCinemaBlazor.ApiRequest.Model
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
@@ -22,7 +22,7 @@ else
         {
             <div class="list-group-item">
                 <div class="d-flex w-100 justify-content-between">
-                    <h5 class="mb-1">@message.UserName</h5>
+                    <h5 class="mb-1">@message</h5>
                     <small>@message.dateTimeSent.ToString("g")</small>
                 </div>
                 <p class="mb-1">@message.Message</p>
@@ -48,27 +48,59 @@ else
 
 @code {
     [Parameter]
-    public int FilmId { get; set; }
+    public int filmId { get; set; }
 
     private string filmName;
     private List<MessageShort> messages;
     private AddMessage newMessage = new AddMessage();
 
-    protected override async Task OnParametersSetAsync()
+    protected override async Task OnInitializedAsync()
     {
-        // Загрузка данных о фильме и сообщениях
-        var filmResponse = await Http.GetFromJsonAsync<Film>($"/api/films/{FilmId}");
-        filmName = filmResponse.Name;
+        if (filmId <= 0)
+        {
+            Console.WriteLine("Некорректный filmId");
+            NavigationManager.NavigateTo("/error");
+            return;
+        }
+        try
+        {
+            var filmResponse = await Http.GetFromJsonAsync<Film>($"api/FilmGenres/getFilm/{filmId}");
+            if (filmResponse == null)
+            {
+                Console.WriteLine("Фильм не найден");
+                NavigationManager.NavigateTo("/error");
+                return;
+            }
 
-        var messagesResponse = await Http.GetFromJsonAsync<MessageDataContainer>($"/api/messages?filmId={FilmId}");
-        messages = messagesResponse.messages;
+            filmName = filmResponse.Name;
+
+            var messagesResponse = await Http.GetFromJsonAsync<MessageDataContainer>($"/api/messages?filmId={filmId}");
+            if (messagesResponse == null || messagesResponse.messages == null)
+            {
+                messages = new List<MessageShort>();
+            }
+            else
+            {
+                messages = messagesResponse.messages;
+            }
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            Console.WriteLine($"Ресурс не найден: {ex.Message}");
+            NavigationManager.NavigateTo("/error"); 
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Произошла ошибка: {ex.Message}");
+            NavigationManager.NavigateTo("/error"); 
+        }
     }
 
     private async Task AddMessage()
     {
-        newMessage.Film_ = FilmId;
-        newMessage.User_Name = GetCurrentUserId(); // Получите ID текущего пользователя
-        newMessage.Recipient_Name = 0; // Если получатель не обязателен, установите значение по умолчанию
+        newMessage.Film_ = filmId;
+        newMessage.User_Name = GetCurrentUserId();
+        newMessage.Recipient_Name = 0; 
 
         await Http.PostAsJsonAsync("/api/messages", newMessage);
         messages.Add(new MessageShort
@@ -76,16 +108,18 @@ else
                 Id_Message = messages.Count + 1,
                 Message = newMessage.Message,
                 dateTimeSent = DateTime.Now,
-                UserName = "Вы", // Установите имя текущего пользователя
+
                 ImageURL = newMessage.ImageURL
             });
 
-        newMessage = new AddMessage(); // Очистка формы
+        newMessage = new AddMessage(); 
     }
 
     private int GetCurrentUserId()
     {
-        // Реализуйте логику получения ID текущего пользователя
-        return 1; // Пример
+        return 1; //нужно допилить
+                  //нужно допилить
+                  //нужно допилить
+                  //нужно допилить
     }
 }
