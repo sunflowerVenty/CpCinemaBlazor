@@ -27,6 +27,11 @@
                                 <span class="bi bi-film me-2"></span>
                             </NavLink>
                         </li>
+                        <li class="nav-item">
+                            <NavLink class="nav-link text-white" href="/people">
+                                <span class="bi bi-person-circle me-2"></span>People Page
+                            </NavLink>
+                        </li>
                     </NotAuthorized>
                     <Authorized>
                         <li class="nav-item">
@@ -39,6 +44,7 @@
                                 <span class="bi bi-person-circle me-2"></span>User Page
                             </NavLink>
                         </li>
+
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown">
                                 <span class="bi bi-person-fill me-2"></span>@context.User.Identity?.Name

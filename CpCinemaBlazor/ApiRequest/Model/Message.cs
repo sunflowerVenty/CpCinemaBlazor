@@ -5,13 +5,25 @@ namespace CpCinemaBlazor.ApiRequest.Model
 {
     public class MessageShort
     {
+        [Key]
         public int Id_Message { get; set; }
+        [Required]
+        
         public string Message { get; set; }
-        public DateTime dateTimeSent { get; set; }
-        public int Film_Id { get; set; } 
-        public int User_iD { get; set; }
+        [Required]
+        public DateTime dateTimeSent { get; set; }        
         public string ImageURL { get; set; }
+
+        [ForeignKey("Film")]
+        public int Film_Id { get; set; } 
+        public Film Film { get; set; }
+        [ForeignKey("User")]
+        public int User_Id { get; set; }
+        public User User { get; set; }
+        
         public int Recipient_Id { get; set; }
+        [ForeignKey("Recipient_Id")]
+        public User? Recipient { get; set; }
     }
     public class Messages
     {

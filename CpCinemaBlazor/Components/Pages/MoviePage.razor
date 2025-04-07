@@ -6,7 +6,6 @@
 @rendermode InteractiveServer
 @inject NavigationManager Navigation
 
-
 <style>
     /* Основные настройки */
     body {
@@ -30,47 +29,47 @@
         padding: 0.5rem;
         margin: 0.5rem 0;
         border: 1px solid #ced4da;
-        border-radius: 0.75rem; /*увеличен до 0.75rem*/
-        transition: border-color 0.3s ease; /*добавил анимацию*/
+        border-radius: 0.75rem;
+        transition: border-color 0.3s ease;
     }
 
-        .form-control:focus {
-            border-color: #86b7fe;
-            box-shadow: 0 0 0 0.2rem rgba(12, 105, 227, 0.25);
-        }
+    .form-control:focus {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.2rem rgba(12, 105, 227, 0.25);
+    }
 
     /* Кнопки */
     .btn {
-        padding: 0.5rem 1.5rem; /* увеличил горизонтальный padding */
+        padding: 0.5rem 1.5rem;
         border: none;
-        border-radius: 0.75rem; /* закругление 0.75rem */
+        border-radius: 0.75rem;
         cursor: pointer;
         transition: all 0.3s ease;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* тень для глубины */
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     }
 
-        .btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
 
     .btn-primary {
         background-color: #0d6efd;
         color: white;
     }
 
-        .btn-primary:hover {
-            background-color: #0b5ed7;
-        }
+    .btn-primary:hover {
+        background-color: #0b5ed7;
+    }
 
     .btn-danger {
         background-color: #dc3545;
         color: white;
     }
 
-        .btn-danger:hover {
-            background-color: #bd2130;
-        }
+    .btn-danger:hover {
+        background-color: #bd2130;
+    }
 
     /* Таблицы */
     .table {
@@ -79,17 +78,18 @@
         margin: 1rem 0;
     }
 
-        .table thead th {
-            background-color: #343a40;
-            color: white;
-            padding: 0.75rem;
-            border-radius: 0.5rem 0.5rem 0 0; /* закругление для заголовков таблицы */
-        }
+    .table thead th {
+        background-color: #343a40;
+        color: white;
+        padding: 0.75rem;
+        border-radius: 0.5rem 0.5rem 0 0;
+    }
 
-        .table td, .table th {
-            border: 1px solid #dee2e6;
-            padding: 0.75rem;
-        }
+    .table td, .table th {
+        border: 1px solid #dee2e6;
+        padding: 0.75rem;
+        text-align: center; /* Центрирование текста */
+    }
 
     /* Заголовки */
     h1 {
@@ -97,10 +97,10 @@
         font-weight: bold;
         text-align: center;
         margin-bottom: 2rem;
-        border-radius: 0.5rem; /* закругление для заголовков */
+        border-radius: 0.5rem;
         padding: 1rem;
-        background-color: #e9ecef; /* фон для заголовков */
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* тень */
+        background-color: #e9ecef;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
     /* Валидация */
@@ -108,11 +108,6 @@
         color: #dc3545;
         font-size: 0.875em;
         margin-top: 0.25rem;
-    }
-
-    /* Дополнительные улучшения */
-    input[type="date"] {
-        border-radius: 0.75rem; /* для полей даты */
     }
 
     /* Эффекты наведения */
@@ -128,7 +123,6 @@
 
 <PageTitle>Фильмы</PageTitle>
 
-<!-- Центрирование всего контента -->
 <div class="d-flex justify-content-center align-items-center vh-100">
     <div class="col-md-8">
         @if (isAdmin && isAuthenticated)
@@ -289,7 +283,7 @@
     private bool isEditing = false;
     private Film editingFilm;
     private AddFilm newfilm = new AddFilm();
-    CurUser curUser;
+    CurUser  curUser ;
 
     private bool isAuthenticated;
     private bool isAdmin;
@@ -298,11 +292,11 @@
 
     protected override async Task OnInitializedAsync()
     {
-        curUser = SingletoneUser.GetUser();
+        curUser  = SingletoneUser .GetUser ();
 
-        isAuthenticated = curUser != null;
+        isAuthenticated = curUser  != null;
 
-        isAdmin = curUser?.isAdmin == true;
+        isAdmin = curUser ?.isAdmin == true;
 
         await GetAllFilms();
     }
@@ -310,7 +304,7 @@
     private async Task GetAllFilms()
     {
         var response = await ApiRequest.GetAllFilmsAsync();
-        films = response?.Data?.movies ?? [];
+        films = response?.Data?.movies ?? new List<FilmShort>();
     }
     
     private async Task GetAllMessages(int id_Film)
@@ -329,14 +323,14 @@
     {
         film.Edit = true;
         editingFilm = new Film
-            {
-                id_Film = film.id_Film,
-                Name = film.Name,
-                Info = film.Info,
-                DateCreate = film.DateCreate,
-                Rating = film.Rating,
-                Namegenre = film.Namegenre
-            };
+        {
+            id_Film = film.id_Film,
+            Name = film.Name,
+            Info = film.Info,
+            DateCreate = film.DateCreate,
+            Rating = film.Rating,
+            Namegenre = film.Namegenre
+        };
     }
 
     private async Task SaveFilm(FilmShort film)

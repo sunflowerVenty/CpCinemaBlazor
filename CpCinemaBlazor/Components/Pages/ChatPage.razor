@@ -1,6 +1,270 @@
-﻿@page "/chat"
-<h3>ChatPage</h3>
+﻿@page "/chat/{recipientId:int}"
+@using CpCinemaBlazor.ApiRequest
+@using CpCinemaBlazor.ApiRequest.Model
+@using Microsoft.AspNetCore.SignalR.Client
+@using static CpCinemaBlazor.ApiRequest.Model.User
+@using static CpCinemaBlazor.Components.ChatComponent
+@inject NavigationManager Navigation
+@inject ApiRequestService ApiRequest
+@inject HttpClient Http
 
-@code {
 
+<style>
+    /* Контейнер чата */
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    max-width: 600px;
+    margin: 0 auto;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background-color: #fff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
+
+.messages-list {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.message {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.message.sent {
+    justify-content: flex-end;
+}
+
+.message.received {
+    justify-content: flex-start;
+}
+
+.message-content {
+    max-width: 70%;
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    position: relative;
+}
+
+.message.sent .message-content {
+    background-color: #dcf8c6;
+    color: #000;
+}
+
+.message.received .message-content {
+    background-color: #ececec;
+    color: #000;
+}
+
+.message-time {
+    font-size: 0.8rem;
+    color: #666;
+    margin-left: 0.5rem;
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #007bff;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    margin: 0 10px;
+}
+
+.right-avatar {
+    order: 2;
+}
+
+.left-avatar {
+    order: 0;
+}
+
+.message-input {
+    display: flex;
+    padding: 1rem;
+    border-top: 1px solid #ddd;
+}
+
+.message-input input {
+    flex-grow: 1;
+    margin-right: 1rem;
+}
+</style>
+
+
+
+<h3><span class="message-text">@userName</span></h3>
+
+<div class="chat-container">
+    <div class="messages-list">
+        @foreach (var message in chats.Where(m => m.ReceiverId == recipientId || m.SenderId == recipientId).OrderBy(m => m.Timestamp))
+        {
+            <div class="message @(message.SenderId == userId ? "sent" : "received")">
+                <div class="message-content">
+                    <span class="message-text">@message.Message</span>
+                    <span class="message-time">@message.Timestamp.ToString("HH:mm")</span>
+                </div>
+                <div class="avatar @(message.SenderId == userId ? "right-avatar" : "left-avatar")">
+                    @(message.SenderId == userId ? "You" : message.SenderName[0])
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="message-input">
+        <input type="text" class="form-control" @bind="newChatMessage" placeholder="Введите ваше сообщение" />
+        <button @onclick="SendMessage" class="btn btn-primary">Отправить</button>
+    </div>
+</div>
+@code {
+    [Parameter]
+    public int recipientId {get; set;}
+    private List<MessagesDto> chats = new List<MessagesDto>();
+    private List<MessagesDto> filteredChats = new List<MessagesDto>();
+    private string newChatMessage;
+    private int userId;
+    private bool showPersonalChats = true;
+    private HubConnection? hubConnection;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private const string BaseUrl = "api/Message";
+    
+    private void ShowPersonalChats()
+    {
+        showPersonalChats = true;
+        FilterChats();
+        StateHasChanged();
+    }
+
+    async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(newChatMessage))
+        {
+            return; // Не отправляем пустое сообщение
+        }
+
+        var newMessage = new MessagesDto
+            {
+                SenderId = userId,
+                ReceiverId = recipientId,
+                Message = newChatMessage,
+                Timestamp = DateTime.UtcNow // Используем UTC для хранения времени
+            };
+
+        // Отправляем сообщение через SignalR
+        await hubConnection.SendAsync("SendMessageToUser ", newChatMessage, userId, recipientId);
+
+        // Добавляем сообщение в локальный список
+        chats.Add(newMessage);
+        newChatMessage = string.Empty; // Очищаем поле ввода
+
+        StateHasChanged(); // Обновляем интерфейс
+    }
+
+    private void FilterChats()
+    {
+        if (showPersonalChats)
+        {
+            // Показываем только личные чаты (ReceiverId != -1)
+            filteredChats = chats.Where(chat => chat.ReceiverId != -1).ToList();
+        }
+        else
+        {
+            // Показываем только общий чат (ReceiverId == -1)
+            filteredChats = chats.Where(chat => chat.ReceiverId == -1).ToList();
+        }
+        filteredChats = chats;
+    }
+    private void NavigateToChat(MessagesDto chat)
+    {
+        if (chat.ReceiverId == -1)
+        {
+            Navigation.NavigateTo($"/chats/films");
+        }
+        else if (chat.ReceiverId == userId)
+        {
+            Navigation.NavigateTo($"/chats/{chat.SenderId}");
+        }
+        else
+        {
+            Navigation.NavigateTo($"/chats/{chat.ReceiverId}");
+        }
+    }
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            StateHasChanged();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var messagesResponse = await Http.GetFromJsonAsync<List<MessagesDto>>($"{BaseUrl}/messages/chat/{userId}/{recipientId}");
+        if (messagesResponse != null)
+        {
+            chats.AddRange(messagesResponse);
+        }
+        var user = await Http.GetFromJsonAsync<string>($"api/UsersLogins/api/UserLogin/GetUserById/{recipientId}");
+        // Инициализация SignalR
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl("http://localhost:5005/MessagesHub")
+            .Build();
+
+        hubConnection.On<string, int, int, string>("ReceiveMessage", (message, senderId, receiverId, imageUrl) =>
+        {
+            if (receiverId != userId && receiverId != recipientId || senderId == userId) return;
+
+            chats.Add(new MessagesDto
+                {
+                    SenderId = senderId,
+                    ReceiverId = receiverId,
+                    Message = message,
+                    Timestamp = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Russian Standard Time")),
+                    ImageUrl = imageUrl
+                });
+
+            InvokeAsync(StateHasChanged);
+        });
+
+        await hubConnection.StartAsync();
+    }
+
+    public class MessagesDto
+    {
+        public int SenderId { get; set; }
+        public string SenderName { get; set; }
+        public int ReceiverId { get; set; }
+        public string ReceiverName { get; set; }
+
+        public string Message { get; set; }
+
+        public DateTime Timestamp { get; set; } = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Russian Standard Time"));
+        public string ImageUrl { get; set; }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
