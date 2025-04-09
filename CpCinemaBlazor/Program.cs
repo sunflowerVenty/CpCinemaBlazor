@@ -3,9 +3,8 @@ using CpCinemaBlazor;
 using CpCinemaBlazor.ApiRequest;
 using CpCinemaBlazor.ApiRequest.Services;
 using CpCinemaBlazor.Components;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Components.Authorization;
-using System.Net.Http.Headers;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +22,7 @@ builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStat
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<FilmService>();
 builder.Services.AddScoped<MessagesService>();
+builder.Services.AddScoped<ApiRequestService>();
 
 builder.Services.AddHttpClient("UnauthorizedClient", client =>
 {
@@ -37,11 +37,9 @@ builder.Services.AddTransient<AuthorizationMessageHandler>();
 builder.Services.AddAuthorizationCore();
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 

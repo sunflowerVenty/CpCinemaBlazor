@@ -45,7 +45,7 @@
         <div class="collapse navbar-collapse justify-content-end">
             <ul class="navbar-nav">
                 <AuthorizeView>
-                    <NotAuthorized>
+                    <Authorized>
                         <li class="nav-item">
                             <NavLink class="nav-link text-white" href="/Registration" Match="NavLinkMatch.All">
                                 <span class="bi bi-person-plus-fill me-2"></span>Регистрация
@@ -66,8 +66,8 @@
                                 <span class="bi bi-film me-2"></span>Люди
                             </NavLink>
                         </li>
-                    </NotAuthorized>
-                    <Authorized>
+                    </Authorized>
+                    <NotAuthorized>
                         <li class="nav-item">
                             <NavLink class="nav-link text-white" href="/adminpage">
                                 <span class="bi bi-gear-fill me-2"></span>Admin
@@ -95,7 +95,7 @@
                                 </li>
                             </ul>
                         </li>
-                    </Authorized>
+                    </NotAuthorized>
                 </AuthorizeView>
             </ul>
         </div>

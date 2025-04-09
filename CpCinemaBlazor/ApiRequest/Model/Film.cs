@@ -5,44 +5,28 @@ using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace CpCinemaBlazor.ApiRequest.Model
 {
-    public class FilmShort
-    {
-        public int id_Film { get; set; }
-        public string Name { get; set; }
-        public string Info { get; set; }
-        public string Namegenre { get; set; }
-        public DateTime DateCreate { get; set; }
-        public double Rating { get; set; }
-        public bool Edit { get; set; } = false;
-    }
-
     public class Film
     {
-        public int id_Film { get; set; }
+        public int Id { get; set; }
+
+        [Required(ErrorMessage = "Название обязательно для заполнения")]
+        [StringLength(100, ErrorMessage = "Название не может быть длиннее 100 символов")]
         public string Name { get; set; }
-        public string Info { get; set; }
-        public string Namegenre { get; set; }
-        public DateTime DateCreate { get; set; }
-        public double Rating { get; set; }
-    }
 
-    public class FilmData
-    {
-        public bool Status { get; set; }
-        public FilmDataContainer Data { get; set; }
-    }
+        [Required(ErrorMessage = "Жанр обязателен для заполнения")]
+        public string Genre { get; set; }
 
-    public class FilmDataContainer
-    {
-        public List<FilmShort> movies { get; set; }
-    }
+        [Required(ErrorMessage = "Описание обязательно для заполнения")]
+        public string Description { get; set; }
 
-    public class AddFilm
-    {
-        public string Name { get; set; }
-        public string Info { get; set; }
-        public string Namegenre { get; set; }
-        public DateTime DateCreate { get; set; }
-        public double Rating { get; set; }
+        [Required(ErrorMessage = "Дата выхода обязательна для заполнения")]
+        public DateTime ReleaseDate { get; set; }
+
+        [Required(ErrorMessage = "Рейтинг обязателен для заполнения")]
+        [Range(0, 5, ErrorMessage = "Рейтинг должен быть от 0 до 5")]
+        public decimal Rating { get; set; }
+
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
     }
 }

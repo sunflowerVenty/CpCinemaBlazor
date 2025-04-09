@@ -1,20 +1,25 @@
 ﻿@page "/"
 
 @using System.ComponentModel.DataAnnotations
+@using Blazored.LocalStorage
 @using CpCinemaBlazor.ApiRequest.Model
 @using Microsoft.AspNetCore.Authentication
 @using CpCinemaBlazor.Data
 @using CpCinemaBlazor.ApiRequest
 @using ApiRequest.Services
 @using System
+@using System.Timers
 @using System.IdentityModel.Tokens.Jwt
 @using System.Security.Claims
 @using static CpCinemaBlazor.ApiRequest.Model.User
-
-@inject ILogger<Login> Logger
-@inject NavigationManager Navigation
-@inject AuthenticationStateProvider AuthenticationStateProvider
 @rendermode InteractiveServer
+@inject ILogger<Login> Logger
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Navigation
+@inject ILocalStorageService LocalStorage
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NotificationService NotificationService
+
 
 
 <style>
@@ -112,127 +117,231 @@ h1 {
 <div class="d-flex justify-content-center align-items-center vh-100">
     <div class="col-md-4">
         <section>
-            <EditForm Model="@Input" OnValidSubmit="AuthBtn" FormName="LoginForm">
-                <DataAnnotationsValidator />
-                <h2 class="text-center mb-4">Авторизация</h2>
-                <hr />
-                <ValidationSummary class="text-danger" role="alert" />
-                <div class="form-floating mb-3">
-                    <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" aria-required="true" />
-                    <label for="email" class="form-label">Почта</label>
-                    <ValidationMessage For="() => Input.Email" class="text-danger" />
+            <EditForm Model="@loginRequest" OnValidSubmit="HandleLogin" FormName="LoginForm">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="form-group">
+        <label for="email">Почта:</label>
+        <Microsoft.AspNetCore.Components.Forms.InputText id="email" class="form-control" @bind-Value="loginRequest.Email" />
+        <ValidationMessage For="@(() => loginRequest.Email)" />
+    </div>
+
+    <div class="form-group">
+        <label for="password">Пароль:</label>
+        <Microsoft.AspNetCore.Components.Forms.InputText id="password" type="password" class="form-control" @bind-Value="loginRequest.Password" />
+        <ValidationMessage For="@(() => loginRequest.Password)" />
+    </div>
+
+    <button type="submit" class="btn-primary" disabled="@isLoading">
+        @if (isLoading)
+        {
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            <span class="sr-only">Загрузка...</span>
+        }
+        else
+        {
+            <span>Войти</span>
+        }
+    </button>
+</EditForm>
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert">
+                    @errorMessage
                 </div>
-                <div class="form-floating mb-3">
-                    <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" />
-                    <label for="password" class="form-label">Пароль</label>
-                    <ValidationMessage For="() => Input.Password" class="text-danger" />
-                </div>
-                <div>
-                    <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
-                </div>
-                <div class="mt-3">
-                    <p class="text-center">
-                        <a href="/Account/Registration">Forgot your password?</a>
-                    </p>
-                </div>
-            </EditForm>
+            }
+
+            <div class="mt-3" style="text-align: center;">
+                <NavLink class="register-link" href="/Registration">Зарегистрироваться</NavLink>
+            </div>
         </section>
     </div>
 </div>
 
 @code {
-    AuthUser user = new AuthUser();
-    [Inject] private ApiRequestService ApiRequest { get; set; }
+    private LoginUserRequest loginRequest = new LoginUserRequest();
+    private string errorMessage;
+    private bool isLoading;
+    private bool isInitialized = false;
+    private string currentUserRole;
 
-    private string? errorMessage;
+    private List<NotificationService.NotificationModel> Notifications = new List<NotificationService.NotificationModel>();
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
-    [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
-
-    [SupplyParameterFromQuery]
-    private string? ReturnUrl { get; set; }
-
-
-
-    private sealed class InputModel
+    protected override async Task OnInitializedAsync()
     {
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; } = "";
+        NotificationService.OnNotificationAdded += HandleNotificationAdded;
 
-        [Required]
-        [DataType(DataType.Password)]
-        public string Password { get; set; } = "";
-
-        [Display(Name = "Remember me?")]
-        public bool RememberMe { get; set; }
-    }
-
-    async Task AuthBtn()
-    {
         try
         {
-            user.Email = Input.Email;
-            user.Password = Input.Password;
-
-            var token = await ApiRequest.AuthorizationAsync(user);
+            var token = await LocalStorage.GetItemAsync<string>("authToken");
 
             if (!string.IsNullOrEmpty(token))
             {
-                var principal = JwtService.DecodeJwtToken(token);
+                if (IsTokenValid(token))
+                {
+                    // Устанавливаем состояние аутентификации
+                    await ((CustomAuthenticationStateProvider)AuthenticationStateProvider).NotifyUserAuthentication(token);
 
-                int Id = Convert.ToInt32(principal.FindFirst("id_User")?.Value);
-                string NameT = principal.FindFirst("Name")?.Value;
-                string About = principal.FindFirst("AboutMe")?.Value;
-                bool Admin = Convert.ToBoolean(principal.FindFirst("isAdmin")?.Value);
-                SingletoneUser.InitUser(new CurUser { id_User = Id, AboutMe = About, Name = NameT, isAdmin = Admin, Token = token });
-                
-                if (Admin == true)
-                {
-                    Navigation.NavigateTo("/adminpage");
+                    // // Перенаправляем на главную страницу
+                    // Navigation.NavigateTo("/filmpage", forceLoad: true);
                 }
-                else if (Admin == false)
+                else
                 {
-                    Navigation.NavigateTo("/userpage");
+                    // Удаляем невалидный токен
+                    await LocalStorage.RemoveItemAsync("authToken");
                 }
-            }
-            else
-            {
-                errorMessage = "Authorization failed: No token received";
             }
         }
         catch (Exception ex)
         {
-            errorMessage = $"Authorization failed: {ex.Message}";
+            Console.WriteLine($"Error checking token: {ex.Message}");
         }
     }
 
-    public class JwtService
+
+    private void HandleNotificationAdded(NotificationService.NotificationModel notification)
     {
-        public static ClaimsPrincipal DecodeJwtToken(string token)
+        Notifications.Add(notification);
+        StateHasChanged();
+
+        var timer = new Timer(5000);
+        timer.Elapsed += (sender, args) =>
         {
-            var handler = new JwtSecurityTokenHandler();
-
-            // Проверяем, является ли токен валидным JWT
-            if (handler.CanReadToken(token))
+            InvokeAsync(() =>
             {
-                // Декодируем токен
-                var jwtToken = handler.ReadJwtToken(token);
+                RemoveNotification(notification.Id);
+                StateHasChanged();
+            });
+            timer.Dispose();
+        };
+        timer.Start();
+    }
 
-                // Извлекаем claims (данные) из токена
-                var claims = jwtToken.Claims;
+    private void RemoveNotification(Guid id)
+    {
+        var notification = Notifications.FirstOrDefault(n => n.Id == id);
+        if (notification != null)
+        {
+            Notifications.Remove(notification);
+        }
+    }
 
-                // Создаем ClaimsPrincipal для работы с данными
-                var identity = new ClaimsIdentity(claims, "jwt");
-                var principal = new ClaimsPrincipal(identity);
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !isInitialized)
+        {
+            var token = await LocalStorage.GetItemAsync<string>("authToken");
 
-                return principal;
+            if (!string.IsNullOrEmpty(token) && IsTokenValid(token))
+            {
+                Navigation.NavigateTo("/");
             }
 
-            throw new Exception("Invalid JWT token");
+            isInitialized = true;
+            StateHasChanged();
         }
+    }
+
+    private async Task HandleLogin()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            var httpClient = HttpClientFactory.CreateClient("UnauthorizedClient");
+            Console.WriteLine("Sending login request...");
+            var response = await httpClient.PostAsJsonAsync("api/UserLogin/Login", loginRequest);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Console.WriteLine("Login successful, reading response...");
+                var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
+                if (result != null && !string.IsNullOrEmpty(result.Token))
+                {
+                    Console.WriteLine("Token received, storing in local storage...");
+                    await LocalStorage.SetItemAsync("authToken", result.Token);
+                    Console.WriteLine("Notifying authentication state provider...");
+                    await ((CustomAuthenticationStateProvider)AuthenticationStateProvider).NotifyUserAuthentication(result.Token);
+
+                    currentUserRole = GetUserRoleFromToken(result.Token);
+
+                    NotificationService.ShowSuccess("Авторизация прошла успешно!");
+
+                    Console.WriteLine("Waiting 2 seconds before navigation...");
+                    await Task.Delay(2000);
+                    Console.WriteLine(result.Token);
+                    Console.WriteLine("Navigating to /filmpage...");
+                    Navigation.NavigateTo("/filmpage");
+            }
+            else
+            {
+                errorMessage = "Токен отсутствует в ответе.";
+                NotificationService.ShowError("Токен отсутствует в ответе.");
+            }
+        }
+        else
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"API returned error: {errorContent}");
+            NotificationService.ShowError("Ошибка авторизации.");
+        }
+    }
+    catch (Exception ex)
+    {
+        errorMessage = "Произошла ошибка при авторизации.";
+        NotificationService.ShowError("Произошла ошибка при авторизации.");
+        Console.WriteLine(ex.ToString());
+    }
+    finally
+    {
+        isLoading = false;
+    }
+}
+
+    private bool IsTokenValid(string token)
+    {
+        try
+        {
+            var handler = new JwtSecurityTokenHandler();
+            var jwtToken = handler.ReadJwtToken(token);
+            return jwtToken.ValidTo > DateTime.UtcNow;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private string GetUserRoleFromToken(string token)
+    {
+        try
+        {
+            var handler = new JwtSecurityTokenHandler();
+            var jwtToken = handler.ReadJwtToken(token);
+
+            var role = jwtToken.Claims
+                .FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+
+            return role;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Ошибка при чтении роли из токена: " + ex.Message);
+            return null;
+        }
+    }
+
+    public class LoginUserRequest
+    {
+        public string Email { get; set; }
+        public string Password { get; set; }
+    }
+
+    public class LoginResponse
+    {
+        public string Token { get; set; }
     }
 }

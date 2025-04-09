@@ -5,6 +5,8 @@
 @using static CpCinemaBlazor.ApiRequest.Model.User
 @rendermode InteractiveServer
 @inject NavigationManager Navigation
+@inject ApiRequestService ApiRequest
+@attribute [Authorize]
 
 <style>
     /* Основные настройки */
@@ -137,138 +139,83 @@
 
 <PageTitle>People page</PageTitle>
 
-<div class="d-flex justify-content-center align-items-center vh-100">
-    <div class="col-md-8">
-        <div class="table-responsive">
-            <table class="table">
-                <thead class="alert-dark">
-                    <tr>
-                        <th>Аватар</th>
-                        <th>ID</th>
-                        <th>Имя</th>
-                        <th>О себе</th>
-                        <th>Email</th>
-                        <th>Действия</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (users == null)
-                    {
-                        <tr>
-                            <td colspan="6" class="text-center">Загрузка...</td>
-                        </tr>
-                    }
-                    else if (!users.Any())
-                    {
-                        <tr>
-                            <td colspan="6" class="text-center">Нет пользователей</td>
-                        </tr>
-                    }
-                    else
-                    {
-                        @foreach (var user in users)
-                        {
-                            <tr>
-                                <td>
-                                    <div class="avatar">@user.Name[0]</div>
-                                </td>
-                                <td>@user.id_User</td>
-                                <td>
-                                    @if (user.Edit)
-                                    {
-                                        <input @bind="@user.Name" class="form-control" placeholder="Имя" pattern="[а-яА-Я]+" />
-                                    }
-                                    else
-                                    {
-                                        @user.Name
-                                    }
-                                </td>
-                                <td>
-                                    @if (user.Edit)
-                                    {
-                                        <input @bind="@user.AboutMe" class="form-control" placeholder="О себе" />
-                                    }
-                                    else
-                                    {
-                                        @user.AboutMe
-                                    }
-                                </td>
-                                <td>
-                                    @if (user.Edit)
-                                    {
-                                        <input @bind="@user.Email" class="form-control" placeholder="Почта" />
-                                    }
-                                    else
-                                    {
-                                        @user.Email
-                                    }
-                                </td>
-                                <td>
-                                    <button @onclick="() => Chat(user)" class="btn btn-info">Перейти в чат</button>
-                                </td>
-                            </tr>
-                        }
-                    }
-                </tbody>
-            </table>
+@if (!isInitialized)
+{
+    <div class="d-flex justify-content-center align-items-center vh-100">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
         </div>
     </div>
-</div>
+}
+else
+{
+    <div class="d-flex justify-content-center align-items-center vh-100">
+        <div class="col-md-8">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead class="alert-dark">
+                        <tr>
+                            <th>Аватар</th>
+                            <th>Имя</th>
+                            <th>О себе</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (users == null || !users.Any())
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center">Нет пользователей</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var user in users)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="avatar">@user.name[0]</div>
+                                    </td>
+                                    <td>@user.name</td>
+                                    <td>@(string.IsNullOrEmpty(user.description) ? "Не указано" : user.description)</td>
+                                    <td>
+                                        <button @onclick="() => Chat(user)" class="btn btn-info">Перейти в чат</button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
-    private List<UserDataShort> users;
-
-    AddUser addUser = new AddUser();
-    UserDataShort UserData = new UserDataShort();
-    CurUser curUser;
-
-    private bool isAuthenticated;
-    private bool isAdmin;
-
-    [Inject] private ApiRequestService ApiRequest { get; set; }
+    private List<UserDataShort> users = new();
+    private bool isInitialized;
+    private string errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
-        curUser = SingletoneUser.GetUser();
-
-        isAuthenticated = curUser != null;
-
-        isAdmin = curUser?.isAdmin == true;
-
-        if (isAuthenticated)
+        try
         {
-            await GetUsers();
+            users = await ApiRequest.GetUsersAsync();
         }
-    }
-
-    private async Task GetUsers()
-    {
-        var userData = await ApiRequest.GetUsersAsync();
-        users = userData ?? new List<UserDataShort>();
-
-        StateHasChanged();
+        catch (Exception ex)
+        {
+            errorMessage = $"Ошибка при загрузке пользователей: {ex.Message}";
+            Console.WriteLine(errorMessage);
+        }
+        finally
+        {
+            isInitialized = true;
+            StateHasChanged();
+        }
     }
 
     async Task Chat(UserDataShort user)
     {
-        // Создаем объект ChatDto
-        var chatDto = new ChatDto
-            {
-                UserId = user.id_User,
-                UserName = user.Name,
-                LastMessage = "", // Здесь можно добавить логику для получения последнего сообщения, если нужно
-                LastMessageTime = DateTime.Now // Здесь можно добавить логику для получения времени последнего сообщения, если нужно
-            };
-
-        // Передаем данные о собеседнике
-        Navigation.NavigateTo($"/chat/{chatDto.UserId}");
-    }
-
-    public class ChatDto
-    {
-        public int UserId { get; set; } // Идентификатор собеседника
-        public string UserName { get; set; } // Имя собеседника
-        public string LastMessage { get; set; } // Последнее сообщение
-        public DateTime LastMessageTime { get; set; } // Время последнего сообщения
+        Navigation.NavigateTo($"/chat/{user.id}");
     }
 }

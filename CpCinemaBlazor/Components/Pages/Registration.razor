@@ -7,13 +7,17 @@
 @using CpCinemaBlazor.ApiRequest
 @using ApiRequest.Services
 @using System
+@using System.Timers
 @using System.IdentityModel.Tokens.Jwt
 @using System.Security.Claims
 @using static CpCinemaBlazor.Components.Pages.Login
 @using static CpCinemaBlazor.ApiRequest.Model.User
 
+
 @inject ILogger<Login> Logger
 @inject NavigationManager Navigation
+@inject NotificationService NotificationService
+@inject IHttpClientFactory HttpClientFactory
 @rendermode InteractiveServer
 
 <style>
@@ -141,112 +145,124 @@
 <div class="d-flex justify-content-center align-items-center vh-100">
     <div class="col-md-4">
         <section>
-            <EditForm Model="@Input" OnValidSubmit="RegBtn" FormName="RegForm">
-                <DataAnnotationsValidator />
-                <h2 class="text-center mb-4">Регистрация</h2>
-                <hr />
-                <ValidationSummary class="text-danger" role="alert" />
+            <EditForm Model="@registerModel" OnValidSubmit="HandleRegistration" FormName="RegForm">
+                <DataAnnotationsValidator/>
+                <ValidationSummary />
 
-                <div class="form-floating mb-3">
-                    <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" aria-required="true" />
-                    <label for="email" class="form-label">Почта</label>
-                    <ValidationMessage For="() => Input.Email" class="text-danger" />
+                <div class="form-group">
+                    <label for="email">Почта:</label>
+                    <Microsoft.AspNetCore.Components.Forms.InputText id="email" class="form-control" @bind-Value="registerModel.Email" />
+                    <ValidationMessage For="@(() => registerModel.Email)" />
                 </div>
 
-                <div class="form-floating mb-3">
-                    <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" />
-                    <label for="password" class="form-label">Пароль</label>
-                    <ValidationMessage For="() => Input.Password" class="text-danger" />
+                <div class="form-group">
+                    <label for="name">Имя:</label>
+                    <Microsoft.AspNetCore.Components.Forms.InputText id="name" class="form-control" @bind-Value="registerModel.Name" />
+                    <ValidationMessage For="@(() => registerModel.Name)" />
                 </div>
 
-                <div class="form-floating mb-3">
-                    <InputText @bind-Value="Input.Name" class="form-control" autocomplete="username" aria-required="true" />
-                    <label for="name" class="form-label">Имя</label>
-                    <ValidationMessage For="() => Input.Name" class="text-danger" />
+                <div class="form-group">
+                    <label for="description">Описание:</label>
+                    <Microsoft.AspNetCore.Components.Forms.InputText id="description" class="form-control" @bind-Value="registerModel.Description" />
+                    <ValidationMessage For="@(() => registerModel.Description)" />
                 </div>
 
-                <div class="form-floating mb-3">
-                    <InputText @bind-Value="Input.AboutMe" class="form-control" autocomplete="username" />
-                    <label for="aboutme" class="form-label">О себе</label>
-                    <ValidationMessage For="() => Input.AboutMe" class="text-danger" />
+                <div class="form-group">
+                    <label for="password">Пароль:</label>
+                    <Microsoft.AspNetCore.Components.Forms.InputText id="password" type="password" class="form-control" @bind-Value="registerModel.Password" />
+                    <ValidationMessage For="@(() => registerModel.Password)" />
                 </div>
 
-                <div>
-                    <button type="submit" class="w-100 btn btn-lg btn-primary">Зарегистрироваться</button>
-                </div>
+                <button type="submit" class="btn-primary" disabled="@isLoading">
+                    @if (isLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        <span class="sr-only">Загрузка...</span>
+                    }
+                    else
+                    {
+                        <span>Зарегистрироваться</span>
+                    }
+                </button>
             </EditForm>
+
+            <div class="mt-3" style="text-align: center;">
+                <NavLink class="register-link" href="/">Назад</NavLink>
+            </div>
         </section>
     </div>
 </div>
 
 @code {
-    AddUser user = new AddUser();
-    [Inject] private ApiRequestService ApiRequest { get; set; }
+    private RegisterModel registerModel = new RegisterModel();
     private string errorMessage;
+    private bool isLoading;
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
+    private List<NotificationService.NotificationModel> Notifications = new List<NotificationService.NotificationModel>();
 
-    [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
-
-    private sealed class InputModel
+    protected override void OnInitialized()
     {
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; } = "";
-
-        [Required]
-        [DataType(DataType.Password)]
-        public string Password { get; set; } = "";
-
-        [Required]
-        public string Name { get; set; } = "";
-
-        public string AboutMe { get; set; } = "";
-
-        [Display(Name = "Remember me?")]
-        public bool RememberMe { get; set; }
+        NotificationService.OnNotificationAdded += HandleNotificationAdded;
     }
 
-    async Task RegBtn()
+    private void HandleNotificationAdded(NotificationService.NotificationModel notification)
     {
+        Notifications.Add(notification);
+        StateHasChanged();
+
+        var timer = new Timer(5000);
+        timer.Elapsed += (sender, args) =>
+        {
+            InvokeAsync(() =>
+            {
+                RemoveNotification(notification.Id);
+                StateHasChanged();
+            });
+            timer.Dispose();
+        };
+        timer.Start();
+    }
+
+    private void RemoveNotification(Guid id)
+    {
+        var notification = Notifications.FirstOrDefault(n => n.Id == id);
+        if (notification != null)
+        {
+            Notifications.Remove(notification);
+        }
+    }
+
+    private async Task HandleRegistration()
+    {
+        isLoading = true;
+        errorMessage = null;
+
         try
         {
-            user.Name = Input.Name;
-            user.AboutMe = Input.AboutMe;
-            user.Email = Input.Email;
-            user.Password = Input.Password;
+            var httpClient = HttpClientFactory.CreateClient("UnauthorizedClient");
 
-            var token = await ApiRequest.CreateUserLoginAsync(user);
+            var response = await httpClient.PostAsJsonAsync("api/UserLogin/Register", registerModel);
 
-            if (!string.IsNullOrEmpty(token))
+            if (response.IsSuccessStatusCode)
             {
-                var principal = JwtService.DecodeJwtToken(token);
-
-                int Id = Convert.ToInt32(principal.FindFirst("id_User")?.Value);
-                string NameT = principal.FindFirst("Name")?.Value;
-                string About = principal.FindFirst("AboutMe")?.Value;
-                bool Admin = Convert.ToBoolean(principal.FindFirst("isAdmin")?.Value);
-                // SingletoneUser.InitUser(new CurUser { id_User = Id, AboutMe = About, Name = NameT, isAdmin = Admin, Token = token });
-
-                if (Admin)
-                {
-                    Navigation.NavigateTo("/adminpage");
-                }
-                else
-                {
-                    Navigation.NavigateTo("/userpage");
-                }
+                NotificationService.ShowSuccess("Регистрация прошла успешно!");
+                Navigation.NavigateTo("/login");
             }
             else
             {
-                errorMessage = "Ошибка регистрации: не получен токен";
+                var errorContent = await response.Content.ReadAsStringAsync();
+                errorMessage = $"Ошибка: {errorContent}";
+                NotificationService.ShowError(errorMessage);
             }
         }
-        catch (Exception ex)
+        catch (Exception e)
         {
-            errorMessage = "Произошла ошибка при регистрации: " + ex.Message;
+            errorMessage = "Произошла ошибка при регистрации.";
+            NotificationService.ShowError(errorMessage);
+        }
+        finally
+        {
+            isLoading = false;
         }
     }
 }

@@ -1,5 +1,4 @@
-﻿@using CpCinemaBlazor.Components.Layout
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -8,29 +7,16 @@
     <base href="/" />
     <link rel="stylesheet" href="bootstrap/bootstrap.min.css" />
     <link rel="stylesheet" href="app.css" />
-    <link rel="stylesheet" href="CpCinemaBlazor.styles.css" />
+    <link rel="stylesheet" href="BlazorApi.styles.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
     <HeadOutlet />
 </head>
 
 <body>
     <Routes />
-    <script src="_framework/blazor.web.js"></script>
-    
-    <CascadingAuthenticationState>
-        <Router AppAssembly="@typeof(App).Assembly">
-            <Found Context="routeData">
-                <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
-            </Found>
-            <NotFound>
-                <LayoutView Layout="@typeof(MainLayout)">
-                    <p>Страница не найдена</p>
-                </LayoutView>
-            </NotFound>
-        </Router>
-    </CascadingAuthenticationState>
+
+    <component type="typeof(App)" render-mode="Server" />
+    <script src="_framework/blazor.server.js"></script>
 </body>
-
-
 
 </html>

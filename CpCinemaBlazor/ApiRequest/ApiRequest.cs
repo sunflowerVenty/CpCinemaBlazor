@@ -33,11 +33,11 @@ namespace CpCinemaBlazor.ApiRequest
 
         public async Task<List<UserDataShort>> GetUsersAsync()
         {
-            var url = "api/UsersLogins/GetUsers";
+            //var url = "api/UsersLogins/GetAllUsers";
 
             try
             {
-                var response = await _httpClient.GetAsync(url).ConfigureAwait(false);
+                var response = await _httpClient.GetAsync("http://localhost:5005/api/UserLogin/GetAllUsers");
                 response.EnsureSuccessStatusCode();
 
                 var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -48,7 +48,7 @@ namespace CpCinemaBlazor.ApiRequest
                     return [];
                 }
 
-                var usersData = JsonSerializer.Deserialize<List<UserDataShort>>(responseContent, new JsonSerializerOptions //
+                var usersData = JsonSerializer.Deserialize<List<UserDataShort>>(responseContent, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 });

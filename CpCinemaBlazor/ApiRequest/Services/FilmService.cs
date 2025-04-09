@@ -9,7 +9,7 @@ namespace CpCinemaBlazor.ApiRequest.Services
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly NotificationService _notificationService;
         private readonly ILocalStorageService _localStorage;
-        private const string BaseUrl = "api/Films";
+        private const string BaseUrl = "api/FilmsGenres";
 
         public FilmService(IHttpClientFactory httpClientFactory, NotificationService notificationService, ILocalStorageService localStorage)
         {
@@ -24,7 +24,7 @@ namespace CpCinemaBlazor.ApiRequest.Services
             try
             {
                 var client = _httpClientFactory.CreateClient("AuthorizedClient");
-                var url = $"{BaseUrl}/GetAllFilms";
+                var url = $"{BaseUrl}/GetAllMovies";
                 var response = await client.GetAsync(url);
 
                 if (!response.IsSuccessStatusCode)
@@ -71,7 +71,7 @@ namespace CpCinemaBlazor.ApiRequest.Services
                 }
 
                 // Создаем запрос вручную
-                var request = new HttpRequestMessage(HttpMethod.Post, $"{BaseUrl}/CreateFilm");
+                var request = new HttpRequestMessage(HttpMethod.Post, $"{BaseUrl}/CreateMovie");
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
                 request.Content = JsonContent.Create(Film);
 

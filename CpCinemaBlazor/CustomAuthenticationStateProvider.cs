@@ -16,8 +16,13 @@ namespace CpCinemaBlazor
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
-            string token = null;
+            // Во время prerendering возвращаем состояние "не аутентифицирован"
+            if (OperatingSystem.IsBrowser())
+            {
+                return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+            }
 
+            string token = null;
             try
             {
                 token = await _localStorage.GetItemAsync<string>("authToken");

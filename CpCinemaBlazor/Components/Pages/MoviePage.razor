@@ -1,359 +1,417 @@
 ﻿@page "/filmpage"
 @using CpCinemaBlazor.ApiRequest
 @using CpCinemaBlazor.ApiRequest.Model
-@using Microsoft.EntityFrameworkCore.Metadata.Internal
-@using static CpCinemaBlazor.ApiRequest.Model.Film
-@rendermode InteractiveServer
+@using CpCinemaBlazor.ApiRequest.Services
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Blazored.LocalStorage
+@inject FilmService MovieService
 @inject NavigationManager Navigation
+@inject NotificationService NotificationService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ILocalStorageService LocalStorage
+@attribute [Authorize]
+@rendermode RenderMode.InteractiveServer
+@inject IJSRuntime JSRuntime
 
 <style>
-    /* Основные настройки */
-    body {
-        margin: 0;
-        padding: 0;
-        font-family: Arial, sans-serif;
-        background-color: #f8f9fa;
+    /* Основные стили */
+    .movies-container {
+        padding: 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
-    /* Центрирование контента */
-    .centered-content {
+    /* Шапка */
+    .header-container {
         display: flex;
-        justify-content: center;
+        justify-content: space-between;
         align-items: center;
-        min-height: 100vh;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
     }
 
-    /* Формы */
+        .header-container h3 {
+            font-size: 1.8rem;
+            color: #2c3e50;
+            margin: 0;
+            font-weight: 600;
+        }
+
+    /* Навигационные кнопки */
+    .nav-buttons {
+        display: flex;
+        gap: 0.8rem;
+        flex-wrap: wrap;
+    }
+
+    .nav-btn, .logout-btn {
+        padding: 0.6rem 1.2rem;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.95rem;
+        border: none;
+        cursor: pointer;
+    }
+
+    .nav-btn {
+        background-color: #3498db;
+        color: white;
+    }
+
+        .nav-btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-1px);
+        }
+
+    .logout-btn {
+        background-color: #e74c3c;
+        color: white;
+    }
+
+        .logout-btn:hover {
+            background-color: #c0392b;
+            transform: translateY(-1px);
+        }
+
+    /* Форма добавления фильма */
+    .add-movie-form {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
     .form-control {
         width: 100%;
-        padding: 0.5rem;
-        margin: 0.5rem 0;
-        border: 1px solid #ced4da;
-        border-radius: 0.75rem;
-        transition: border-color 0.3s ease;
+        padding: 0.7rem;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 1rem;
+        transition: border 0.2s;
     }
 
-    .form-control:focus {
-        border-color: #86b7fe;
-        box-shadow: 0 0 0 0.2rem rgba(12, 105, 227, 0.25);
-    }
+        .form-control:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
 
-    /* Кнопки */
-    .btn {
-        padding: 0.5rem 1.5rem;
+    .submit-btn {
+        background-color: #2ecc71;
+        color: white;
+        padding: 0.7rem 1.4rem;
         border: none;
-        border-radius: 0.75rem;
+        border-radius: 6px;
+        font-weight: 500;
         cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        transition: all 0.2s;
     }
 
-    .btn:hover {
-        transform: translateY(-1px);
+        .submit-btn:hover {
+            background-color: #27ae60;
+            transform: translateY(-1px);
+        }
+
+    /* Таблица фильмов */
+    .movies-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
 
-    .btn-primary {
-        background-color: #0d6efd;
+        .movies-table th {
+            background-color: #3498db;
+            color: white;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 500;
+        }
+
+        .movies-table td {
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+            vertical-align: middle;
+        }
+
+        .movies-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .movies-table tr:hover {
+            background-color: #f8f9fa;
+        }
+
+    /* Кнопки действий */
+    .action-btn {
+        padding: 0.5rem 0.8rem;
+        border-radius: 5px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: all 0.2s;
+        border: none;
+        cursor: pointer;
+        margin-right: 0.5rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+
+    .view-btn {
+        background-color: #3498db;
         color: white;
     }
 
-    .btn-primary:hover {
-        background-color: #0b5ed7;
-    }
+        .view-btn:hover {
+            background-color: #2980b9;
+        }
 
-    .btn-danger {
-        background-color: #dc3545;
+    .discuss-btn {
+        background-color: #9b59b6;
         color: white;
     }
 
-    .btn-danger:hover {
-        background-color: #bd2130;
-    }
+        .discuss-btn:hover {
+            background-color: #8e44ad;
+        }
 
-    /* Таблицы */
-    .table {
-        width: 100%;
-        border-collapse: collapse;
-        margin: 1rem 0;
-    }
-
-    .table thead th {
-        background-color: #343a40;
+    .edit-btn {
+        background-color: #f39c12;
         color: white;
-        padding: 0.75rem;
-        border-radius: 0.5rem 0.5rem 0 0;
     }
 
-    .table td, .table th {
-        border: 1px solid #dee2e6;
-        padding: 0.75rem;
-        text-align: center; /* Центрирование текста */
+        .edit-btn:hover {
+            background-color: #d35400;
+        }
+
+    .delete-btn {
+        background-color: #e74c3c;
+        color: white;
     }
 
-    /* Заголовки */
-    h1 {
-        color: #212529;
-        font-weight: bold;
+        .delete-btn:hover {
+            background-color: #c0392b;
+        }
+
+    /* Сообщения */
+    .loading-text, .no-data-text {
         text-align: center;
-        margin-bottom: 2rem;
-        border-radius: 0.5rem;
-        padding: 1rem;
-        background-color: #e9ecef;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 2rem;
+        color: #7f8c8d;
+        font-size: 1.1rem;
     }
 
-    /* Валидация */
-    .text-danger {
-        color: #dc3545;
-        font-size: 0.875em;
-        margin-top: 0.25rem;
-    }
-
-    /* Эффекты наведения */
-    .form-control:hover {
-        border-color: #adb5bd;
-    }
-
-    .form-control:disabled {
-        background-color: #e9ecef;
-        border-color: #ced4da;
-    }
 </style>
 
-<PageTitle>Фильмы</PageTitle>
-
-<div class="d-flex justify-content-center align-items-center vh-100">
-    <div class="col-md-8">
-        @if (isAdmin && isAuthenticated)
-        {
-            <div class="mb-5">
-                <h1 class="text-center mb-4">Добавление нового фильма</h1>
-                <div class="form-floating mb-3">
-                    <input @bind="newfilm.Name" class="form-control" placeholder="Название" />
-                    <label for="name">Название</label>
-                </div>
-                <div class="form-floating mb-3">
-                    <input @bind="newfilm.Info" class="form-control" placeholder="Описание" />
-                    <label for="info">Описание</label>
-                </div>
-                <div class="form-floating mb-3">
-                    <input @bind="newfilm.Namegenre" class="form-control" placeholder="Жанр" />
-                    <label for="genre">Жанр</label>
-                </div>
-                <div class="form-floating mb-3">
-                    <input type="date" @bind="newfilm.DateCreate" class="form-control" />
-                    <label for="publishing-date">Дата выхода</label>
-                </div>
-                <div class="form-floating mb-3">
-                    <input @bind="newfilm.Rating" class="form-control" placeholder="Рейтинг" />
-                    <label for="rating">Рейтинг</label>
-                </div>
-                <button @onclick="CreateFilm" class="w-100 btn btn-primary mb-3">Добавить</button>
-            </div>
-        }
-
-        @if (isAuthenticated)
-        {
-            <div class="table-responsive">
-                <h1 class="text-center mb-4">Список фильмов</h1>
-                <table class="table table-bordered">
-                    <thead class="alert-dark">
-                        <tr>
-                            <td>Id</td>
-                            <td>Название</td>
-                            <td>Жанр</td>
-                            <td>Описание</td>
-                            <td>Дата выхода</td>
-                            <td>Рейтинг</td>
-                            @if (isAdmin)
-                            {
-                                <th>Действия</th>
-                            }
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (films == null)
-                        {
-                            <tr>
-                                <td colspan="6" class="text-center">Загрузка...</td>
-                            </tr>
-                        }
-                        else if (!films.Any())
-                        {
-                            <tr>
-                                <td colspan="6" class="text-center">Фильмы не найдены</td>
-                            </tr>
-                        }
-                        else
-                        {
-                            @foreach (var film in films)
-                            {
-                                <tr>
-                                    <td>
-                                        @if (film.Edit)
-                                        {
-                                            <input @bind="@film.id_Film" class="form-control" placeholder="Id" />
-                                        }
-                                        else
-                                        {
-                                            @film.id_Film
-                                        }
-                                    </td>
-                                    <td>
-                                        @if (film.Edit)
-                                        {
-                                            <input @bind="@film.Name" class="form-control" placeholder="Название" />
-                                        }
-                                        else
-                                        {
-                                            @film.Name
-                                        }
-                                    </td>
-                                    <td>
-                                        @if (film.Edit)
-                                        {
-                                            <input @bind="@film.Namegenre" class="form-control" placeholder="Жанр" />
-                                        }
-                                        else
-                                        {
-                                            @film.Namegenre
-                                        }
-                                    </td>
-                                    <td>
-                                        @if (film.Edit)
-                                        {
-                                            <input @bind="@film.Info" class="form-control" placeholder="Описание" />
-                                        }
-                                        else
-                                        {
-                                            @film.Info
-                                        }
-                                    </td>
-                                    <td>
-                                        @if (film.Edit)
-                                        {
-                                            <input @bind="@film.DateCreate" class="form-control" placeholder="01.01.2025" />
-                                        }
-                                        else
-                                        {
-                                            @film.DateCreate.ToShortDateString()
-                                        }
-                                    </td>
-                                    <td>
-                                        @if (film.Edit)
-                                        {
-                                            <input @bind="@film.Rating" class="form-control" placeholder="Рейтинг" />
-                                        }
-                                        else
-                                        {
-                                            @film.Rating
-                                        }
-                                    </td>
-                                    <td>
-                                        <button @onclick="() => Discuss(film)" class="btn btn-success me-2">Обсуждение</button>
-                                    </td>
-                                    @if (isAdmin)
-                                    {
-                                        <td>
-                                            @if (film.Edit)
-                                            {
-                                                <button @onclick="() => SaveFilm(film)" class="btn btn-success me-2">Сохранить</button>
-                                                <button @onclick="() => CancelEdit(film)" class="btn btn-secondary">Отмена</button>
-                                            }
-                                            else
-                                            {
-                                                <button @onclick="() => EditFilm(film)" class="btn btn-primary me-2">Изменить</button>
-                                                <button @onclick="() => DeleteFilm(film)" class="btn btn-danger">Удалить</button>
-                                            }
-                                        </td>
-                                    }
-                                </tr>
-                            }
-                        }
-                    </tbody>
-                </table>
-            </div>
-        }
+<div class="movies-container">
+    <div class="header-container">
+        <h3>Управление фильмами</h3>
     </div>
+    <AuthorizeView Roles="Admin">
+        <Authorized>
+            <div class="add-movie-form">
+                <h4>Добавить новый фильм</h4>
+                <div class="form-group">
+                    <label>Название фильма</label>
+                    <input class="form-control" @bind="newMovie.Name" />
+                </div>
+                <div class="form-group">
+                    <label>Жанр</label>
+                    <input class="form-control" @bind="newMovie.Genre" />
+                </div>
+                <div class="form-group">
+                    <label>Рейтинг</label>
+                    <input class="form-control" type="number" @bind="newMovie.Rating" />
+                </div>
+                <div class="form-group">
+                    <label>Дата выхода</label>
+                    <input class="form-control" type="date" @bind="newMovie.ReleaseDate" />
+                </div>
+                <div class="form-group">
+                    <label>Описание</label>
+                    <input class="form-control" @bind="newMovie.Description"></input>
+                </div>
+                <button class="submit-btn" @onclick="AddMovie">Добавить фильм</button>
+            </div>
+        </Authorized>
+    </AuthorizeView>
+
+    <!-- Таблица фильмов -->
+    @if (!isAuthenticated)
+    {
+        <p class="loading-text">Загрузка...</p>
+    }
+    else if (movies == null || !movies.Any())
+    {
+        <p class="no-data-text">Нет данных о фильмах.</p>
+    }
+    else
+    {
+        <table class="movies-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Название</th>
+                    <th>Жанр</th>
+                    <th>Рейтинг</th>
+                    <th>Дата выхода</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var movie in movies)
+                {
+                    <tr>
+                        <td>@movie.Id</td>
+                        <td>@movie.Name</td>
+                        <td>@movie.Genre</td>
+                        <td>@movie.Rating</td>
+                        <td>@movie.ReleaseDate.ToShortDateString()</td>
+                        <td>
+                            <button class="action-btn view-btn" @onclick="() => ViewMovie(movie.Id)">
+                                <i class="fas fa-eye"></i> Просмотр
+                            </button>
+                            <button class="action-btn discuss-btn" @onclick="() => DiscussMovie(movie.Id)">
+                                <i class="fas fa-comments"></i> Обсудить
+                            </button>
+                            <AuthorizeView Roles="Admin">
+                                <Authorized>
+                                    <button class="action-btn edit-btn" @onclick="() => EditMovie(movie.Id)">
+                                        <i class="fas fa-edit"></i> Редакт.
+                                    </button>
+                                    <button class="action-btn delete-btn" @onclick="() => DeleteMovie(movie.Id)">
+                                        <i class="fas fa-trash"></i> Удалить
+                                    </button>
+                                </Authorized>
+                            </AuthorizeView>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 </div>
 
 @code {
-    private List<FilmShort> films;
-    private bool isEditing = false;
-    private Film editingFilm;
-    private AddFilm newfilm = new AddFilm();
-    CurUser  curUser ;
+    private List<Film> movies = new List<Film>();
+    private bool isLoading = true;
+    private bool isAdmin = false;
+    private bool isAuthenticated = false;
+    private Film newMovie = new Film();
 
-    private bool isAuthenticated;
-    private bool isAdmin;
-
-    [Inject] private ApiRequestService ApiRequest { get; set; }
-
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        curUser  = SingletoneUser .GetUser ();
-
-        isAuthenticated = curUser  != null;
-
-        isAdmin = curUser ?.isAdmin == true;
-
-        await GetAllFilms();
-    }
-
-    private async Task GetAllFilms()
-    {
-        var response = await ApiRequest.GetAllFilmsAsync();
-        films = response?.Data?.movies ?? new List<FilmShort>();
-    }
-    
-    private async Task GetAllMessages(int id_Film)
-    {
-        var response = await ApiRequest.GetMessagesByFilmIdAsync(id_Film);
-    }
-
-    private async Task CreateFilm()
-    {
-        await ApiRequest.CreateFilmAsync(newfilm);
-        await GetAllFilms();
-        newfilm = new AddFilm();
-    }
-
-    private void EditFilm(FilmShort film)
-    {
-        film.Edit = true;
-        editingFilm = new Film
+        if (firstRender)
         {
-            id_Film = film.id_Film,
-            Name = film.Name,
-            Info = film.Info,
-            DateCreate = film.DateCreate,
-            Rating = film.Rating,
-            Namegenre = film.Namegenre
-        };
+            await CheckAuthState();
+            await LoadMovies();
+            StateHasChanged();
+        }
     }
 
-    private async Task SaveFilm(FilmShort film)
+    private async Task CheckAuthState()
     {
-        ApiRequest.EditFilmAsync(editingFilm);
-        await GetAllFilms();
-        film.Edit = false;
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        isAuthenticated = authState.User.Identity?.IsAuthenticated ?? false;
+        isAdmin = authState.User.IsInRole("Администратор");
     }
 
-    private void CancelEdit(FilmShort film)
+    private async Task LoadMovies()
     {
-        film.Edit = false;
+        try
+        {
+            isLoading = true;
+            movies = await MovieService.GetFilmsAsync();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.ShowError($"Ошибка при загрузке фильмов: {ex.Message}");
+            movies = new List<Film>();
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 
-    private async Task DeleteFilm(FilmShort film)
+    private async Task AddMovie()
     {
-        ApiRequest.DeleteFilmAsync(film.id_Film);
-        await GetAllFilms();
+        try
+        {
+            var result = await MovieService.CreateFilmAsync(newMovie);
+            if (result)
+            {
+                NotificationService.ShowSuccess("Фильм успешно добавлен");
+                newMovie = new Film();
+                await LoadMovies();
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.ShowError($"Ошибка при добавлении фильма: {ex.Message}");
+        }
     }
 
-    private async Task Discuss(FilmShort film)
+    private void ViewMovie(int id)
     {
-        await GetAllMessages(film.id_Film);
-        Navigation.NavigateTo($"/discuss/{film.id_Film}");
+        Navigation.NavigateTo($"/movies/details/{id}");
+    }
+
+    private void DiscussMovie(int id)
+    {
+        Navigation.NavigateTo($"/discussion/{id}");
+    }
+
+    private void EditMovie(int id)
+    {
+        Navigation.NavigateTo($"/movies/edit/{id}");
+    }
+
+    private async Task DeleteMovie(int id)
+    {
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Вы уверены, что хотите удалить этот фильм?");
+        if (confirmed)
+        {
+            try
+            {
+                if (await MovieService.DeleteFilmAsync(id))
+                {
+                    NotificationService.ShowSuccess("Фильм успешно удален");
+                    await LoadMovies();
+                }
+            }
+            catch (Exception ex)
+            {
+                NotificationService.ShowError($"Ошибка при удалении фильма: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task Logout()
+    {
+        await LocalStorage.RemoveItemAsync("authToken");
+        Navigation.NavigateTo("/login");
     }
 }
