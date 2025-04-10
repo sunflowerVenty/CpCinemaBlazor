@@ -9,6 +9,19 @@
             public string name { get; set; }
             public string description { get; set; }
             public string email {  get; set; }
+            public string Password { get; set; }
+            public bool Edit { get; set; }
+
+        }
+        public class UserDataShort2
+        {
+            public int Id { get; set; }
+            public bool Admin { get; set; }
+            public string Name { get; set; }
+            public string AboutMe { get; set; }
+            public string Email { get; set; }
+            public string Password { get; set; }
+            public bool Edit { get; set; }
 
         }
 

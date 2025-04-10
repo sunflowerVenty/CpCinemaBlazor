@@ -62,6 +62,37 @@ namespace CpCinemaBlazor.ApiRequest
             }
         }
 
+        public async Task<List<UserDataShort2>> GetUsers2Async()
+        {
+            //var url = "api/UsersLogins/GetAllUsers";
+
+            try
+            {
+                var response = await _httpClient.GetAsync("http://localhost:5005/api/UserLogin/GetAllUsers");
+                response.EnsureSuccessStatusCode();
+
+                var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+                if (string.IsNullOrEmpty(responseContent))
+                {
+                    _logger.LogWarning("Ответ от сервера пуст.");
+                    return [];
+                }
+
+                var usersData = JsonSerializer.Deserialize<List<UserDataShort2>>(responseContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                return usersData ?? [];
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при запросе");
+                return [];
+            }
+        }
+
         public async void EditUserAsync(UserProd user)
         {
             try
@@ -88,7 +119,7 @@ namespace CpCinemaBlazor.ApiRequest
 
         public async Task<string> CreateUserLoginAsync(AddUser user)
         {
-            var response = await _httpClient.PostAsJsonAsync($"http://localhost:5005/api/UsersLogins/CreateNewUserAndLogin", user);
+            var response = await _httpClient.PostAsJsonAsync($"http://localhost:5005/api/UserLogin/Register", user);
 
             if (!response.IsSuccessStatusCode)
             {

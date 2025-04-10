@@ -1,4 +1,4 @@
-﻿@* @page "/adminpage"
+﻿@page "/adminpage"
 
 @using CpCinemaBlazor.ApiRequest
 @using CpCinemaBlazor.ApiRequest.Model
@@ -160,8 +160,6 @@
         </div>
 
         <!-- Таблица пользователей -->
-        @if (isAdmin)
-        {
             <div class="table-responsive">
                 <table class="table table-bordered">
                     <thead class="alert-dark">
@@ -195,11 +193,11 @@
                             {
                                 <tr>
                                     <td>
-                                        <div class="avatar">@user.Name[0]</div>
+                                        <div class="avatar">@user.name[0]</div>
                                     </td>
-                                    <td>@user.id_User</td>
+                                    <td>@user.id</td>
                                     <td>
-                                        @if (user.Admin)
+                                        @if (user.role == "Admin")
                                         {
                                             <span class="text-success">Админ</span>
                                         }
@@ -211,31 +209,31 @@
                                     <td>
                                         @if (user.Edit)
                                         {
-                                            <input @bind="@user.Name" class="form-control" placeholder="Имя" pattern="[а-яА-Я]+" />
+                                            <input @bind="@user.name" class="form-control" placeholder="Имя" pattern="[а-яА-Я]+" />
                                         }
                                         else
                                         {
-                                            @user.Name
+                                            @user.name
                                         }
                                     </td>
                                     <td>
                                         @if (user.Edit)
                                         {
-                                            <input @bind="@user.AboutMe" class="form-control" placeholder="О себе" />
+                                            <input @bind="@user.description" class="form-control" placeholder="О себе" />
                                         }
                                         else
                                         {
-                                            @user.AboutMe
+                                            @user.description
                                         }
                                     </td>
                                     <td>
                                         @if (user.Edit)
                                         {
-                                            <input @bind="@user.Email" class="form-control" placeholder="Почта" />
+                                            <input @bind="@user.email" class="form-control" placeholder="Почта" />
                                         }
                                         else
                                         {
-                                            @user.Email
+                                            @user.email
                                         }
                                     </td>
                                     <td>
@@ -258,7 +256,7 @@
                                         {
                                             <button @onclick="() => EditUser (user)" class="btn btn-primary me-2">Изменить</button>
                                             <button @onclick="() => DeleteUser (user)" class="btn btn-danger me-2">Удалить</button>
-                                            @if (!user.Admin)
+                                            @if (user.role == "User")
                                             {
                                                 <button @onclick="() => MakeAdmin(user)" class="btn btn-warning me-2">Сделать админом</button>
                                             }
@@ -274,7 +272,7 @@
                     </tbody>
                 </table>
             </div>
-        }
+        
     </div>
 </div>
 
@@ -283,24 +281,28 @@
 
     AddUser  addUser  = new AddUser ();
     UserDataShort UserData = new UserDataShort();
-    CurUser  curUser ;
+    private bool isInitialized;
+    private string errorMessage;
+    public bool admin;
 
-    private bool isAuthenticated;
-    private bool isAdmin;
 
     [Inject] private ApiRequestService ApiRequest { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        curUser  = SingletoneUser .GetUser ();
-
-        isAuthenticated = curUser  != null;
-
-        isAdmin = curUser ?.isAdmin == true;
-
-        if (isAuthenticated && isAdmin)
+        try
         {
-            await GetUsers();
+            users = await ApiRequest.GetUsersAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Ошибка при загрузке пользователей: {ex.Message}";
+            Console.WriteLine(errorMessage);
+        }
+        finally
+        {
+            isInitialized = true;
+            StateHasChanged();
         }
     }   
 
@@ -319,24 +321,24 @@
 
     async void DeleteUser (UserDataShort user)
     {
-        ApiRequest.DeleteUserAsync(user.id_User);
+        ApiRequest.DeleteUserAsync(user.id);
         await GetUsers();
     }
 
     async void MakeAdmin(UserDataShort user)
     {
-        if (!string.IsNullOrWhiteSpace(user.Name) &&
-            !string.IsNullOrWhiteSpace(user.AboutMe) &&
-            !string.IsNullOrWhiteSpace(user.Email) &&
+        if (!string.IsNullOrWhiteSpace(user.name) &&
+            !string.IsNullOrWhiteSpace(user.description) &&
+            !string.IsNullOrWhiteSpace(user.email) &&
             !string.IsNullOrWhiteSpace(user.Password))
         {
             UserProd userProd = new UserProd
             {
-                id_User = user.id_User,
+                id_User = user.id,
                 isAdmin = true,
-                Name = user.Name,
-                AboutMe = user.AboutMe,
-                Email = user.Email,
+                Name = user.name,
+                AboutMe = user.description,
+                Email = user.email,
                 Password = user.Password
             };
 
@@ -347,18 +349,18 @@
 
     async void MakeUser (UserDataShort user)
     {
-        if (!string.IsNullOrWhiteSpace(user.Name) &&
-            !string.IsNullOrWhiteSpace(user.AboutMe) &&
-            !string.IsNullOrWhiteSpace(user.Email) &&
+        if (!string.IsNullOrWhiteSpace(user.name) &&
+            !string.IsNullOrWhiteSpace(user.description) &&
+            !string.IsNullOrWhiteSpace(user.email) &&
             !string.IsNullOrWhiteSpace(user.Password))
         {
             UserProd userProd = new UserProd
             {
-                id_User = user.id_User,
+                id_User = user.id,
                 isAdmin = false,
-                Name = user.Name,
-                AboutMe = user.AboutMe,
-                Email = user.Email,
+                Name = user.name,
+                AboutMe = user.description,
+                Email = user.email,
                 Password = user.Password
             };
 
@@ -371,18 +373,27 @@
 
     void SaveUser (UserDataShort user)
     {
-        if (!string.IsNullOrWhiteSpace(user.Name) &&
-            !string.IsNullOrWhiteSpace(user.AboutMe) &&
-            !string.IsNullOrWhiteSpace(user.Email) &&
+
+        if (!string.IsNullOrWhiteSpace(user.name) &&
+            !string.IsNullOrWhiteSpace(user.description) &&
+            !string.IsNullOrWhiteSpace(user.email) &&
             !string.IsNullOrWhiteSpace(user.Password))
         {
+            if (user.role == "Admin")
+            {
+                admin = true;
+            }
+            else
+            {
+                admin = false;
+            }
             UserProd userProd = new UserProd
             {
-                id_User = user.id_User,
-                isAdmin = user.Admin,
-                Name = user.Name,
-                AboutMe = user.AboutMe,
-                Email = user.Email,
+                id_User = user.id,
+                isAdmin = admin,
+                Name = user.name,
+                AboutMe = user.description,
+                Email = user.email,
                 Password = user.Password
             };
 
@@ -397,4 +408,4 @@
         ApiRequest.CreateUserLoginAsync(addUser);
         GetUsers();
     }
-} *@
+}

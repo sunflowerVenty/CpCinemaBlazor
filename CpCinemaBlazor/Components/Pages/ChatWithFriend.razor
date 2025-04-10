@@ -15,82 +15,198 @@
     .chat-container {
         display: flex;
         flex-direction: column;
-        height: 100vh; /* Высота на всю страницу */
-        width: 80%;
-        margin: auto;
-        border: 1px solid #80bfff; /* Голубая рамка */
-        border-radius: 8px;
-        background-color: #e6f7ff; /* Светло-голубой фон */
+        height: 90vh;
+        max-width: 800px;
+        margin: 20px auto;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        background: white;
+        overflow: hidden;
+        font-family: 'Segoe UI', sans-serif;
     }
 
     .chat-title {
-        background-color: #007acc; /* Синий цвет заголовка */
+        background: linear-gradient(135deg, #007acc 0%, #005c99 100%);
         color: white;
-        padding: 10px;
+        padding: 15px;
         text-align: center;
-        border-top-left-radius: 8px;
-        border-top-right-radius: 8px;
+        font-size: 1.5rem;
+        font-weight: 500;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     }
 
     .messages {
-        flex: 1; /* Занимает оставшееся пространство */
-        padding: 10px;
-        overflow-y: auto; /* Прокрутка при переполнении */
+        flex: 1;
+        padding: 15px;
+        overflow-y: auto;
+        background-color: #f5f7fa;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
     }
 
     .message {
-        margin: 5px 0;
-        padding: 10px;
-        border-radius: 5px;
-        max-width: 80%;
+        max-width: 70%;
+        padding: 12px 16px;
+        border-radius: 18px;
+        position: relative;
+        animation: fadeIn 0.3s ease-out;
+        word-wrap: break-word;
+        line-height: 1.4;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 
     .user-message {
         align-self: flex-end;
-        background-color: #cce6ff; /* Голубой фон для сообщений пользователя */
+        background: linear-gradient(135deg, #007acc 0%, #00a1ff 100%);
+        color: white;
+        border-bottom-right-radius: 4px;
     }
 
     .sender-message {
         align-self: flex-start;
-        background-color: #ffffff; /* Белый фон для сообщений отправителя */
+        background: white;
+        color: #333;
+        border-bottom-left-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .message-content {
+        position: relative;
     }
 
     .timestamp {
-        font-size: 0.8em;
-        color: #666; /* Серый цвет для времени */
-        margin-top: 5px;
+        display: block;
+        font-size: 0.7rem;
+        opacity: 0.8;
+        margin-top: 4px;
+        text-align: right;
+    }
+
+    .user-message .timestamp {
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .sender-message .timestamp {
+        color: rgba(0, 0, 0, 0.5);
     }
 
     .input-container {
         display: flex;
-        padding: 10px;
-        border-top: 1px solid #80bfff; /* Голубая рамка */
-        background-color: #ffffff; /* Белый фон для контейнера ввода */
+        padding: 15px;
+        background: white;
+        border-top: 1px solid #e0e5ec;
+        gap: 10px;
+        align-items: center;
     }
 
     input[type="text"] {
-        flex: 1; /* Занимает оставшееся пространство */
-        padding: 10px;
-        border: 1px solid #80bfff; /* Голубая рамка */
-        border-radius: 5px;
-        margin-right: 10px;
+        flex: 1;
+        padding: 12px 15px;
+        border: 1px solid #e0e5ec;
+        border-radius: 24px;
+        font-size: 1rem;
+        outline: none;
+        transition: border 0.3s;
     }
 
+        input[type="text"]:focus {
+            border-color: #007acc;
+            box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+        }
+
     button {
-        padding: 10px 15px;
-        background-color: #007acc; /* Синий цвет кнопки */
+        padding: 12px 20px;
+        background: linear-gradient(135deg, #007acc 0%, #005c99 100%);
         color: white;
         border: none;
-        border-radius: 5px;
+        border-radius: 24px;
         cursor: pointer;
+        font-weight: 500;
+        transition: transform 0.2s, box-shadow 0.2s;
     }
 
         button:hover {
-            background-color: #005c99; /* Темно-синий при наведении */
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 92, 153, 0.2);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+    .file-input-container {
+        position: relative;
+    }
+
+    .file-input-label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #f0f4f8;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+        .file-input-label:hover {
+            background: #e0e5ec;
+        }
+
+        .file-input-label svg {
+            width: 20px;
+            height: 20px;
+            fill: #007acc;
+        }
+
+    .image-preview {
+        max-width: 200px;
+        max-height: 200px;
+        border-radius: 8px;
+        margin-top: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s;
+    }
+
+        .image-preview:hover {
+            transform: scale(1.03);
+        }
+
+    /* Стили для скроллбара */
+    .messages::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .messages::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+    }
+
+    .messages::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 3px;
+    }
+
+        .messages::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
         }
 </style>
+
 <div class="chat-container">
-    <h2 class="chat-title">Чат</h2>
+    <h2 class="chat-title">Чат с @(messages.FirstOrDefault()?.ReceiverName ?? "пользователем")</h2>
     <div class="messages">
         @foreach (var message in messages)
         {
@@ -98,7 +214,7 @@
                 <div class="message-content">
                     @if (!string.IsNullOrEmpty(message.ImageUrl))
                     {
-                        <img src="@message.ImageUrl" alt="Изображение" style="max-width: 100%; height: auto;" />
+                        <img src="@message.ImageUrl" class="image-preview" alt="Изображение" />
                     }
                     <p>@message.Message</p>
                     <span class="timestamp">@message.Timestamp.ToString("HH:mm")</span>
@@ -107,9 +223,23 @@
         }
     </div>
     <div class="input-container">
-        <InputFile @ref="fileInput" OnChange="HandleFileSelected" accept="image/*" />
-        <input type="text" @bind="newMessageContent" placeholder="Введите сообщение..." @onkeydown="@(e => { if (e.Key == "Enter") SendMessage(); })" />
-        <button @onclick="SendMessage">Отправить</button>
+        <div class="file-input-container">
+            <label class="file-input-label" for="file-upload">
+                <svg viewBox="0 0 24 24">
+                    <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
+                </svg>
+            </label>
+            <InputFile id="file-upload" @ref="fileInput" OnChange="HandleFileSelected" accept="image/*" style="display: none;" />
+        </div>
+        <input type="text" @bind="newMessageContent"
+               placeholder="Напишите сообщение..."
+               @onkeydown="@(e => { if (e.Key == "Enter") SendMessage(); })" />
+        <button @onclick="SendMessage">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="white" style="margin-right: 5px;">
+                <path d="M2,21L23,12L2,3V10L17,12L2,14V21Z" />
+            </svg>
+            Отправить
+        </button>
     </div>
 </div>
 @code {
