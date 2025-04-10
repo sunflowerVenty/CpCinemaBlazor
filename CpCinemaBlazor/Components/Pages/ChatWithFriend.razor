@@ -1,8 +1,7 @@
-﻿@page "/discussion/{filmId:int}"
+﻿@page "/chats/{ReceiverId:int}"
 @using static CpCinemaBlazor.Components.Pages.PeoplePage
 @using System.IdentityModel.Tokens.Jwt
 @using System.Security.Claims
-@using CpCinemaBlazor.ApiRequest.Model
 @using CpCinemaBlazor.ApiRequest.Services
 @inject NavigationManager Navigation
 @inject IHttpClientFactory HttpClientFactory
@@ -89,33 +88,17 @@
         button:hover {
             background-color: #005c99; /* Темно-синий при наведении */
         }
-
-    .film-title {
-        font-weight: bold;
-        margin-bottom: 5px;
-    }
-
-    .sender-name {
-        font-size: 0.9em;
-        color: #007acc; /* Синий цвет для имени отправителя */
-        cursor: pointer;
-    }
 </style>
-
 <div class="chat-container">
-    <h2 class="chat-title">Обсуждение фильма</h2>
+    <h2 class="chat-title">Чат</h2>
     <div class="messages">
         @foreach (var message in messages)
         {
             <div class="message @(message.SenderId == userId ? "user-message" : "sender-message")">
                 <div class="message-content">
-                    @if (message.SenderId != userId)
+                    @if (!string.IsNullOrEmpty(message.ImageUrl))
                     {
-                        <a class="sender-name" href="/chats/@message.SenderId">@message.SenderName:</a>
-                    }
-                    else
-                    {
-                        <p class="sender-name">@message.SenderName:</p>
+                        <img src="@message.ImageUrl" alt="Изображение" style="max-width: 100%; height: auto;" />
                     }
                     <p>@message.Message</p>
                     <span class="timestamp">@message.Timestamp.ToString("HH:mm")</span>
@@ -124,19 +107,19 @@
         }
     </div>
     <div class="input-container">
+        <InputFile @ref="fileInput" OnChange="HandleFileSelected" accept="image/*" />
         <input type="text" @bind="newMessageContent" placeholder="Введите сообщение..." @onkeydown="@(e => { if (e.Key == "Enter") SendMessage(); })" />
         <button @onclick="SendMessage">Отправить</button>
     </div>
 </div>
 @code {
     [Parameter]
-    public int filmId { get; set; }
+    public int ReceiverId { get; set; }
 
     private string newMessageContent = "";
 
-    private List<MessagesFilm> messages = new List<MessagesFilm>();
+    private List<MessagesDto> messages = new List<MessagesDto>();
     private int userId;
-    private string username;
     private HubConnection? hubConnection;
     private readonly IHttpClientFactory _httpClientFactory;
     private const string BaseUrl = "api/Message";
@@ -153,14 +136,18 @@
         hubConnection = new HubConnectionBuilder()
         .WithUrl("http://localhost:5005/chatHub").Build();
 
-        hubConnection.On<string, int, int, string>("ReceiveMessageFilm", (message, senderId, filmId, senderName) =>
+        hubConnection.On<string, int, int, string>("ReceiveMessage", (message, senderId, receiverId, imageUrl) =>
         {
-            messages.Add(new MessagesFilm
+            if (receiverId != userId && receiverId != ReceiverId || senderId == userId) return;
+            Console.WriteLine($"Message from {senderId}: {message}");
+            messages.Add(new MessagesDto
                 {
                     SenderId = senderId,
+                    ReceiverId = receiverId,
                     Message = message,
-                    SenderName = senderName,
                     Timestamp = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Russian Standard Time")),
+
+                    ImageUrl = imageUrl
                 });
             InvokeAsync(StateHasChanged);
         });
@@ -173,18 +160,41 @@
 
     private async void SendMessage()
     {
-        var newMessage = new MessagesFilm
+        if (string.IsNullOrWhiteSpace(newMessageContent) && selectedFile is null) return;
+
+        string imageUrl = null;
+
+        if (selectedFile != null)
+        {
+            var httpClient = HttpClientFactory.CreateClient("AuthorizedClient");
+            var content = new MultipartFormDataContent();
+            var fileStream = selectedFile.OpenReadStream();
+            var fileContent = new StreamContent(fileStream);
+            content.Add(fileContent, "file", selectedFile.Name);
+
+            var response = await httpClient.PostAsync("api/messages/uploadImage", content);
+            if (response.IsSuccessStatusCode)
+            {
+                // Читаем ответ как типизированный объект
+                var result = await response.Content.ReadFromJsonAsync<UploadResponse>();
+                imageUrl = result?.imageUrl;
+            }
+        }
+
+        var newMessage = new MessagesDto
             {
                 SenderId = userId,
+                ReceiverId = ReceiverId,
                 Message = newMessageContent,
-                SenderName = username,
                 Timestamp = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Russian Standard Time")),
+                ImageUrl = imageUrl
             };
 
-        await hubConnection.SendAsync("SendMessageFilm", newMessageContent, userId, filmId);
+        await hubConnection.SendAsync("SendMessageToUser", newMessageContent, userId, ReceiverId, imageUrl);
 
         messages.Add(newMessage);
         newMessageContent = string.Empty;
+        selectedFile = null; // Очищаем выбранный файл
         StateHasChanged();
     }
 
@@ -245,10 +255,7 @@
             var handler = new JwtSecurityTokenHandler();
             var jwtToken = handler.ReadJwtToken(token);
             userId = int.Parse(jwtToken.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value);
-            username = jwtToken.Claims.First(c => c.Type == ClaimTypes.Name).Value;
-
-            messages = await MessagesService.getMessagesFilmAsync(filmId);
-
+            messages = await MessagesService.getMessagesWithUserAsync(userId, ReceiverId);
             StateHasChanged();
         }
     }

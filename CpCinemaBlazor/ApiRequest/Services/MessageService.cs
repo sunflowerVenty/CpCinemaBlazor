@@ -1,6 +1,6 @@
 ﻿using Blazored.LocalStorage;
 using CpCinemaBlazor.ApiRequest.Model;
-using static CpCinemaBlazor.Components.Pages.ChatPage;
+using static CpCinemaBlazor.Components.Pages.ChatWithFriend;
 
 namespace CpCinemaBlazor.ApiRequest.Services
 {
@@ -9,7 +9,7 @@ namespace CpCinemaBlazor.ApiRequest.Services
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly NotificationService _notificationService;
         private readonly ILocalStorageService _localStorage;
-        private const string BaseUrl = "api/messages";
+        private const string BaseUrl = "api/Message";
 
         public MessagesService(IHttpClientFactory httpClientFactory, NotificationService notificationService, ILocalStorageService localStorage)
         {
