@@ -5,6 +5,7 @@ using CpCinemaBlazor.ApiRequest.Services;
 using CpCinemaBlazor.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Fluxor;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,6 +36,13 @@ builder.Services.AddHttpClient("AuthorizedClient", client =>
 .AddHttpMessageHandler<AuthorizationMessageHandler>();
 builder.Services.AddTransient<AuthorizationMessageHandler>();
 builder.Services.AddAuthorizationCore();
+builder.Services.AddFluxor(options =>
+{
+    options.ScanAssemblies(typeof(Program).Assembly);
+});
+
+// Добавление локального хранилища
+builder.Services.AddBlazoredLocalStorage();
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
