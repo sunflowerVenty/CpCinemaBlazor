@@ -332,7 +332,7 @@
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         isAuthenticated = authState.User.Identity?.IsAuthenticated ?? false;
-        isAdmin = authState.User.IsInRole("Администратор");
+        isAdmin = authState.User.IsInRole("Admin");
     }
 
     private async Task LoadMovies()
