@@ -24,6 +24,8 @@ builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<FilmService>();
 builder.Services.AddScoped<MessagesService>();
 builder.Services.AddScoped<ApiRequestService>();
+builder.Services.AddFluxor(options => options.ScanAssemblies(typeof(Program).Assembly));
+builder.Services.AddBlazoredLocalStorage();
 
 builder.Services.AddHttpClient("UnauthorizedClient", client =>
 {

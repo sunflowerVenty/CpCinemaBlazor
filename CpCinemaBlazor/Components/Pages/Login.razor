@@ -2,6 +2,7 @@
 
 @using System.ComponentModel.DataAnnotations
 @using CpCinemaBlazor.ApiRequest.Model
+@using CpCinemaBlazor.Fluxor.Auth
 @using Microsoft.AspNetCore.Authentication
 @using CpCinemaBlazor.ApiRequest
 @using ApiRequest.Services
@@ -10,6 +11,7 @@
 @using System.IdentityModel.Tokens.Jwt
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Components.Authorization
+@using global::Fluxor
 @using static CpCinemaBlazor.ApiRequest.Model.User
 @rendermode InteractiveServer
 @inject ILogger<Login> Logger
@@ -19,7 +21,6 @@
 @inject IState<AuthState> _authState
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NotificationService NotificationService
-<Fluxor.Blazor.Web.StoreInitializer />
 
 
 
