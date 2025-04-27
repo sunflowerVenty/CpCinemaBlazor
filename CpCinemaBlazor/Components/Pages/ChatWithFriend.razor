@@ -347,7 +347,7 @@
         {
             Console.WriteLine("Ошибка при обновлении токена.");
             Dispatcher.Dispatch(new ClearJwtTokenAction());
-            Navigation.NavigateTo("/login");
+            Navigation.NavigateTo("/");
             return null;
         }
     }

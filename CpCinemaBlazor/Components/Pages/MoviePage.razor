@@ -259,7 +259,7 @@
     </AuthorizeView>
 
     <!-- Таблица фильмов -->
-    @if (!isAuthenticated)
+    @if (isLoading)
     {
         <p class="loading-text">Загрузка...</p>
     }
