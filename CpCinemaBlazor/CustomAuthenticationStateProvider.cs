@@ -1,49 +1,34 @@
-﻿using Blazored.LocalStorage;
-using Microsoft.AspNetCore.Components.Authorization;
+﻿using Microsoft.AspNetCore.Components.Authorization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using Fluxor;
+using CpCinemaBlazor.StateManager;
 
 namespace CpCinemaBlazor
 {
     public class CustomAuthenticationStateProvider : AuthenticationStateProvider
     {
-        private readonly ILocalStorageService _localStorage;
+        private readonly IState<AuthState> _authState;
 
-        public CustomAuthenticationStateProvider(ILocalStorageService localStorage)
+        public CustomAuthenticationStateProvider(IState<AuthState> authState)
         {
-            _localStorage = localStorage;
+            _authState = authState;
         }
 
-        public override async Task<AuthenticationState> GetAuthenticationStateAsync()
+        public override Task<AuthenticationState> GetAuthenticationStateAsync()
         {
-            // Во время prerendering возвращаем состояние "не аутентифицирован"
-            if (OperatingSystem.IsBrowser())
-            {
-                return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
-            }
-
-            string token = null;
-            try
-            {
-                token = await _localStorage.GetItemAsync<string>("authToken");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Ошибка при получении токена: {ex.Message}");
-            }
+            var token = _authState.Value.JwtToken;
 
             if (string.IsNullOrEmpty(token))
             {
-                return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+                return Task.FromResult(new AuthenticationState(new ClaimsPrincipal()));
             }
 
-            var handler = new JwtSecurityTokenHandler();
-            var jwtToken = handler.ReadJwtToken(token);
-
-            var identity = new ClaimsIdentity(jwtToken.Claims, "jwt");
+            var claims = ParseClaimsFromJwt(token);
+            var identity = new ClaimsIdentity(claims, "jwt");
             var user = new ClaimsPrincipal(identity);
 
-            return new AuthenticationState(user);
+            return Task.FromResult(new AuthenticationState(user));
         }
 
         public async Task NotifyUserAuthentication(string token)
@@ -60,13 +45,12 @@ namespace CpCinemaBlazor
             });
         }
 
-        public async Task MarkUserAsLoggedOut()
+        private IEnumerable<Claim> ParseClaimsFromJwt(string token)
         {
-            await Task.Run(() =>
-            {
-                var anonymousUser = new ClaimsPrincipal(new ClaimsIdentity());
-                NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(anonymousUser)));
-            });
+            var handler = new JwtSecurityTokenHandler();
+            var jwtToken = handler.ReadJwtToken(token);
+
+            return jwtToken.Claims;
         }
     }
 }

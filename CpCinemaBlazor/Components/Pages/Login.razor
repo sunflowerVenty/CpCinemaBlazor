@@ -1,9 +1,7 @@
 ﻿@page "/"
 
 @using System.ComponentModel.DataAnnotations
-@using Blazored.LocalStorage
 @using CpCinemaBlazor.ApiRequest.Model
-@using Fluxor
 @using Microsoft.AspNetCore.Authentication
 @using CpCinemaBlazor.ApiRequest
 @using ApiRequest.Services
@@ -17,10 +15,11 @@
 @inject ILogger<Login> Logger
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager Navigation
-@inject ILocalStorageService LocalStorage
 @inject IDispatcher Dispatcher
+@inject IState<AuthState> _authState
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NotificationService NotificationService
+<Fluxor.Blazor.Web.StoreInitializer />
 
 
 
@@ -174,32 +173,6 @@ h1 {
     protected override async Task OnInitializedAsync()
     {
         NotificationService.OnNotificationAdded += HandleNotificationAdded;
-
-        try
-        {
-            var token = await LocalStorage.GetItemAsync<string>("authToken");
-
-            if (!string.IsNullOrEmpty(token))
-            {
-                if (IsTokenValid(token))
-                {
-                    // Устанавливаем состояние аутентификации
-                    await ((CustomAuthenticationStateProvider)AuthenticationStateProvider).NotifyUserAuthentication(token);
-
-                    // // Перенаправляем на главную страницу
-                    // Navigation.NavigateTo("/filmpage", forceLoad: true);
-                }
-                else
-                {
-                    // Удаляем невалидный токен
-                    await LocalStorage.RemoveItemAsync("authToken");
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error checking token: {ex.Message}");
-        }
     }
 
 
@@ -234,11 +207,11 @@ h1 {
     {
         if (firstRender && !isInitialized)
         {
-            var token = await LocalStorage.GetItemAsync<string>("authToken");
+            var token = _authState.Value.JwtToken;
 
             if (!string.IsNullOrEmpty(token) && IsTokenValid(token))
             {
-                Navigation.NavigateTo("/");
+                Navigation.NavigateTo("/filmpage");
             }
 
             isInitialized = true;
@@ -253,29 +226,19 @@ h1 {
 
         try
         {
-            var httpClient = HttpClientFactory.CreateClient("UnauthorizedClient");
-            Console.WriteLine("Sending login request...");
+            var httpClient = HttpClientFactory.CreateClient("AuthorizedClient");
             var response = await httpClient.PostAsJsonAsync("api/UserLogin/Login", loginRequest);
 
             if (response.IsSuccessStatusCode)
             {
-                Console.WriteLine("Login successful, reading response...");
                 var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
                 if (result != null && !string.IsNullOrEmpty(result.Token))
                 {
-                    Console.WriteLine("Token received, storing in local storage...");
-                    await LocalStorage.SetItemAsync("authToken", result.Token);
-                    Console.WriteLine("Notifying authentication state provider...");
+                    Dispatcher.Dispatch(new SetJwtTokenAction(result.Token));
                     await ((CustomAuthenticationStateProvider)AuthenticationStateProvider).NotifyUserAuthentication(result.Token);
-
                     currentUserRole = GetUserRoleFromToken(result.Token);
-
                     NotificationService.ShowSuccess("Авторизация прошла успешно!");
-
-                    Console.WriteLine("Waiting 2 seconds before navigation...");
                     await Task.Delay(2000);
-                    Console.WriteLine(result.Token);
-                    Console.WriteLine("Navigating to /filmpage...");
                     Navigation.NavigateTo("/filmpage");
             }
             else

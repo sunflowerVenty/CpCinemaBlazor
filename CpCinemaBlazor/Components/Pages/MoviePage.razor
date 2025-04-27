@@ -4,12 +4,12 @@
 @using CpCinemaBlazor.ApiRequest.Services
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
-@using Blazored.LocalStorage
 @inject FilmService MovieService
 @inject NavigationManager Navigation
 @inject NotificationService NotificationService
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@inject ILocalStorageService LocalStorage
+@inject IDispatcher Dispatcher
+@inject IState<AuthState> _authState
 @attribute [Authorize]
 @rendermode RenderMode.InteractiveServer
 @inject IJSRuntime JSRuntime
@@ -403,7 +403,7 @@
 
     private async Task Logout()
     {
-        await LocalStorage.RemoveItemAsync("authToken");
+        Dispatcher.Dispatch(new ClearJwtTokenAction());
         Navigation.NavigateTo("/login");
     }
 }
