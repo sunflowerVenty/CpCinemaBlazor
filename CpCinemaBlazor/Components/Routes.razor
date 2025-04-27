@@ -1,10 +1,12 @@
 ﻿@using CpCinemaBlazor.Components.Layout
+@using Fluxor
+@using CpCinemaBlazor.StateManager
 @using Microsoft.AspNetCore.Components.Routing
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.IdentityModel.Tokens.Jwt
 @using Microsoft.AspNetCore.Routing
 @inject NavigationManager Navigation
-@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+@inject IState<AuthState> _authState
 @rendermode InteractiveServer
 
 <CascadingAuthenticationState>
@@ -31,10 +33,9 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        Console.Write("asd");
         if (firstRender && !isInitialized)
         {
-            var token = await LocalStorage.GetItemAsync<string>("authToken");
+            var token = _authState.Value.JwtToken;
 
             if (!string.IsNullOrEmpty(token) && IsTokenValid(token))
             {
@@ -51,7 +52,7 @@
             }
             else
             {
-                Navigation.NavigateTo("/login");
+                Navigation.NavigateTo("/");
             }
 
             isInitialized = true;
@@ -94,6 +95,6 @@
 
     private void RedirectToLogin()
     {
-        Navigation.NavigateTo("/login");
+        Navigation.NavigateTo("/");
     }
 }

@@ -38,6 +38,13 @@ builder.Services.AddHttpClient("AuthorizedClient", client =>
 .AddHttpMessageHandler<AuthorizationMessageHandler>();
 builder.Services.AddTransient<AuthorizationMessageHandler>();
 builder.Services.AddAuthorizationCore();
+builder.Services.AddFluxor(options =>
+{
+    options.ScanAssemblies(typeof(Program).Assembly);
+});
+
+// Добавление локального хранилища
+builder.Services.AddBlazoredLocalStorage();
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())

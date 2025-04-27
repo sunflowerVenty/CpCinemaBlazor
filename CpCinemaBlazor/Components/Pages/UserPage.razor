@@ -1,11 +1,12 @@
 ﻿@page "/userpage"
 
-@using CpCinemaBlazor.ApiRequest
-@using CpCinemaBlazor.ApiRequest.Model
-@using System.ComponentModel.DataAnnotations
-@using static CpCinemaBlazor.ApiRequest.Model.User
-@rendermode InteractiveServer
+@using System.IdentityModel.Tokens.Jwt
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
 @inject NavigationManager Navigation
+@inject IDispatcher Dispatcher
+@inject IState<AuthState> _authState
+@rendermode InteractiveServer
 
 <style>
     /* Основные настройки */
@@ -143,7 +144,7 @@
                     {
                         <div class="user-info mb-4">
                             <h4 class="text-center">@user.Name</h4>
-                            <p><strong>Id:</strong> @user.id_User</p>
+                            <p><strong>Id:</strong> @user.Id</p>
                             <p><strong>Имя:</strong> @user.Name</p>
                             <p><strong>О себе:</strong> @user.AboutMe</p>
                         </div>
@@ -159,24 +160,25 @@
 </div>
 
 @code {
-    private CurUser user;
+    private UserFromToken user;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            if (SingletoneUser.us != null)
+            // Получаем JWT-токен из локального хранилища
+            var token = _authState.Value.JwtToken;
+
+            if (!string.IsNullOrEmpty(token))
             {
-                user = new CurUser
-                    {
-                        Name = SingletoneUser.us.Name ?? "Имя не указано",
-                        AboutMe = SingletoneUser.us.AboutMe ?? "Описание не указано"
-                    };
+                // Извлекаем данные пользователя из JWT-токена
+                user = GetUserFromToken(token);
             }
             else
             {
-                user = new CurUser
+                user = new UserFromToken
                     {
+                        Id = "Неизвестно",
                         Name = "Неизвестный пользователь",
                         AboutMe = "Описание недоступно"
                     };
@@ -185,17 +187,56 @@
         catch (Exception ex)
         {
             Console.WriteLine($"Ошибка при инициализации: {ex.Message}");
-            user = new CurUser
+            user = new UserFromToken
                 {
+                    Id = "Неизвестно",
                     Name = "Неизвестный пользователь",
                     AboutMe = "Описание недоступно"
                 };
         }
     }
 
+    private UserFromToken GetUserFromToken(string token)
+    {
+        try
+        {
+            var handler = new JwtSecurityTokenHandler();
+            var jwtToken = handler.ReadJwtToken(token);
+
+            var id = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            var name = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
+            var aboutMe = jwtToken.Claims.FirstOrDefault(c => c.Type == "AboutMe")?.Value;
+
+            return new UserFromToken
+                {
+                    Id = id ?? "Неизвестно",
+                    Name = name ?? "Неизвестный пользователь",
+                    AboutMe = aboutMe ?? "Описание"
+                };
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка при чтении токена: {ex.Message}");
+            return new UserFromToken
+                {
+                    Id = "Неизвестно",
+                    Name = "Неизвестный пользователь",
+                    AboutMe = "Описание"
+                };
+        }
+    }
+
     private async Task Logout()
     {
-        SingletoneUser.exitUser();
+        // Удаляем JWT-токен из локального хранилища
+        Dispatcher.Dispatch(new ClearJwtTokenAction());
         Navigation.NavigateTo("/");
+    }
+
+    public class UserFromToken
+    {
+        public string Id { get; set; }
+        public string Name { get; set; }
+        public string AboutMe { get; set; }
     }
 }
